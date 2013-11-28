@@ -2,7 +2,7 @@
 
 name              := "jacop"
 
-version           := "3.3.0-SNAPSHOT"  // our own version
+version           := "3.3.0"  // our own version
 
 organization      := "de.sciss"  // we publish under this group ID
 
