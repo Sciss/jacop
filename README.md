@@ -1,6 +1,18 @@
 JaCoP
 =====
 
+This is a fork of the Java Constraint Programming (JaCoP) solver from [github.com/radsz/jacop](https://github.com/radsz/jacop).
+This fork is used to publish a stable version to Maven Central to be able to easily depend on this library.
+It is based on the ongoing 4.0 snapshot. In order to prevent confusion with mainline JaCoP, I am using my own group ID
+`de.sciss` and a (arbitrary) artifact version `3.3.0`. This version is slightly stripped down by excluding the FlatZinc
+front-end, since I am building with `sbt` instead of `maven` and could not figure out how to include the JavaCC / JJTree
+source code generator. Also excluded from compilation and the published artifact is the Scala DSL, the reason being that
+I intend to publish a separate Scala front-end.
+
+This fork is published under the original GNU Affero General Public License v3.
+
+# Original Readme
+
 Java Constraint Programming (JaCoP) solver
 
 JaCoP solver is Java-based open source solver developed and maintained mainly by two people
