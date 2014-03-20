@@ -86,27 +86,27 @@ import org.jacop.scala._
 object Flowers extends App with jacop {
 		
 
-  println("Program to solve Flower logic puzzle");
+  println("Program to solve Flower logic puzzle")
 
   val wifeWeek = Array( "Emma", "Kristin", "Lynn", "Toni" )
   val wifeDay =  Array( "EmmaDay", "KristinDay", "LynnDay", "ToniDay" )
   // index to women for ease of referring.
-  val iEmma = 0; val iKristin = 1; val iLynn = 2; val iToni = 3;
+  val iEmma = 0; val iKristin = 1; val iLynn = 2; val iToni = 3
 
   val husbandWeek = Array( "Doug", "Justin", "Shane", "Theo" )
   val husbandDay =  Array( "DougDay", "JustinDay", "ShaneDay", "TheoDay" )
   // index to men for ease of referring.
-  val iDoug = 0; val iJustin = 1; val iShane = 2; val iTheo = 3;
+  val iDoug = 0; val iJustin = 1; val iShane = 2; val iTheo = 3
 
   val flowerWeek = Array( "Violets", "Roses", "Chrys", "Daises" )
   val flowerDay =  Array( "VioletsDay", "RosesDay", "ChrysDay", "DaisesDay" )
   // index to flowers for ease of referring.
-  val iViolets = 0; val iRoses = 1; val iChrys = 2; val iDaises = 3;
+  val iViolets = 0; val iRoses = 1; val iChrys = 2; val iDaises = 3
 
   val occasionWeek = Array( "Walentynki", "Awans", "Urodziny", "Rocznica" )
   val occasionDay =  Array( "WalentynkiDay", "AwansDay", "UrodzinyDay", "RocznicaDay" )
   // index to occasions for ease of referring.
-  val iWalentynki = 0; val iAwans = 1; val iUrodziny = 2; val iRocznica = 3;
+  val iWalentynki = 0; val iAwans = 1; val iUrodziny = 2; val iRocznica = 3
 
   // For each (wife, husband, flower, occassion) there are two sets of
   // variables. One denotes a day and the
@@ -141,14 +141,14 @@ object Flowers extends App with jacop {
   // that days match up. (
   for (x <- 0 until 4) {
 
-    val xz = new IntVar("xz" + x, 1, 4);
-    element(xz, wifeD, husbandD(x))
+    val xz = new IntVar("xz" + x, 1, 4)
+    wifeD(xz) #= husbandD(x)
 
-    val xc = new IntVar("xc" + x, 1, 4);
-    element(xc, occasionD, husbandD(x))
+    val xc = new IntVar("xc" + x, 1, 4)
+    occasionD(xc) #= husbandD(x)
 
-    val xy = new IntVar("xy" + x, 1, 4);
-    element(xy, flowerD, husbandD(x))
+    val xy = new IntVar("xy" + x, 1, 4)
+    flowerD(xy) #= husbandD(x)
   }
 
   // Channeling constraints between day number and week.
@@ -156,25 +156,25 @@ object Flowers extends App with jacop {
   val el = Array( 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
 				3, 4, 4, 4, 4 )
 
-  element(wifeD(iEmma), el, wifeT(iEmma))
-  element(wifeD(iKristin), el, wifeT(iKristin))
-  element(wifeD(iLynn), el, wifeT(iLynn))
-  element(wifeD(iToni), el, wifeT(iToni))
+  el(wifeD(iEmma)) #= wifeT(iEmma)
+  el(wifeD(iKristin)) #= wifeT(iKristin)
+  el(wifeD(iLynn)) #= wifeT(iLynn)
+  el(wifeD(iToni)) #= wifeT(iToni)
 
-  element(husbandD(iDoug), el, husbandT(iDoug))
-  element(husbandD(iJustin), el, husbandT(iJustin))
-  element(husbandD(iShane), el, husbandT(iShane))
-  element(husbandD(iTheo), el, husbandT(iTheo))
+  el(husbandD(iDoug)) #= husbandT(iDoug)
+  el(husbandD(iJustin)) #= husbandT(iJustin)
+  el(husbandD(iShane)) #= husbandT(iShane)
+  el(husbandD(iTheo)) #= husbandT(iTheo)
 
-  element(flowerD(iViolets), el, flowerT(iViolets))
-  element(flowerD(iRoses), el, flowerT(iRoses))
-  element(flowerD(iChrys), el, flowerT(iChrys))
-  element(flowerD(iDaises), el, flowerT(iDaises))
+  el(flowerD(iViolets)) #= flowerT(iViolets)
+  el(flowerD(iRoses)) #= flowerT(iRoses)
+  el(flowerD(iChrys)) #= flowerT(iChrys)
+  el(flowerD(iDaises)) #= flowerT(iDaises)
 
-  element(occasionD(iWalentynki), el, occasionT(iWalentynki))
-  element(occasionD(iAwans), el, occasionT(iAwans))
-  element(occasionD(iUrodziny), el, occasionT(iUrodziny))
-  element(occasionD(iRocznica), el, occasionT(iRocznica))
+  el(occasionD(iWalentynki)) #= occasionT(iWalentynki)
+  el(occasionD(iAwans)) #= occasionT(iAwans)
+  el(occasionD(iUrodziny)) #= occasionT(iUrodziny)
+  el(occasionD(iRocznica)) #= occasionT(iRocznica)
 
   // 2. The woman who received flowers for Valentine's Day had them
   // delivered

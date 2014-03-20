@@ -38,12 +38,10 @@ import java.util.ArrayList;
  * 
  * Source:
  * 
- * @Book{ michel92, author = {Michel, P. and Lauther U. and Duzy, P.}, title =
- *        "The Synthesis Approach to Digital System Design", publisher = "Kluwer
- *        Academic Publisher", year = 1992 }
+ * @see "Michel, P. and Lauther U. and Duzy, P., The Synthesis Approach to Digital System Design, Kluwer Academic Publisher, 1992"
  * 
  * @author Krzysztof Kuchcinski and Radoslaw Szymanek
- * @version 3.0
+ * @version 4.0
  */
 
 public class EWF extends Filter {

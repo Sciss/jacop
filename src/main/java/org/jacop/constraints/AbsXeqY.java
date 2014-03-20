@@ -48,7 +48,7 @@ import org.jacop.core.Var;
  * Domain and bounds consistency can be used; third parameter of constructor controls this.
  * 
  * @author Radoslaw Szymanek and Krzysztof Kuchcinski
- * @version 3.0
+ * @version 4.0
  */
 
 public class AbsXeqY extends PrimitiveConstraint {
@@ -101,7 +101,7 @@ public class AbsXeqY extends PrimitiveConstraint {
 	 * It constructs |X| = Y constraints.
 	 * @param x variable X1
 	 * @param y variable Y
-	 * @param somConsistency controls which consistency method is used; true = domain, false = bound
+	 * @param domConsistency controls which consistency method is used; true = domain, false = bound
 	 */
     public AbsXeqY(IntVar x, IntVar y, boolean domConsistency) {
 	    this(x, y);
@@ -252,26 +252,34 @@ public class AbsXeqY extends PrimitiveConstraint {
 
 	do {
 
-	    store.propagationHasOccurred = false;
-
 	    if (x.min() >= 0) {
 		// possible domain consistecny for this case
 		// x.domain.in(store.level, x, y.domain);
+		// store.propagationHasOccurred = false;
 		// y.domain.in(store.level, y, x.domain);
 
 		// bounds consistency
 		x.domain.in(store.level, x, y.min(), y.max());
+
+		store.propagationHasOccurred = false;
+
 		y.domain.in(store.level, y, x.min(), x.max());
 	    }
 	    else if (x.max() < 0) {
 		x.domain.in(store.level, x, -y.max(), -y.min());
+
+		store.propagationHasOccurred = false;
+
 		y.domain.in(store.level, y, -x.max(), -x.min());			
 	    }
 	    else { // x.min() < 0 && x.max() >= 0
 		// int xBound = Math.max(y.min(), y.max());
 		int xBound = y.max();   // y is always >= 0
 		x.domain.in(store.level, x, -xBound, xBound);
-		y.domain.inMax(store.level, y, Math.max(-x.min(), x.max()));			
+
+		store.propagationHasOccurred = false;
+
+		y.domain.inMax(store.level, y, Math.max(-x.min(), x.max()));
 	    }
 
 	} while (store.propagationHasOccurred);

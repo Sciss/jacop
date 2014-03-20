@@ -1,16 +1,16 @@
 /**
-* Package for defining variables, constraints, global constraints and search methods for [[JaCoP]] constraint solver in Scala.
+* Package for defining variables, constraints, global constraints and search methods for [[org.jacop]] constraint solver in Scala.
 */
 package org.jacop
 
-import org.jacop.core._
+//import org.jacop.core._
 import org.jacop.constraints._
 import org.jacop.constraints.knapsack._
 import org.jacop.constraints.regular._
 import org.jacop.constraints.binpacking._
 import org.jacop.constraints.netflow._
 import org.jacop.search._
-import org.jacop.set.core._
+//import org.jacop.set.core._
 import org.jacop.set.constraints._
 import org.jacop.set.search._
 
@@ -31,7 +31,7 @@ package object scala {
 
   var timeOutValue: Int = -1
 
-  var recordSolutions = false;
+  var recordSolutions = false
 
   /*
    * private var impModel corresponds to the currently used store/model. 
@@ -40,6 +40,14 @@ package object scala {
   private var impModel : Model = new Model()	// the current impModel-store
   def getModel = impModel	// returns the current impModel
   def setModel(that : Model) = impModel = that	// sets the current impModel
+
+  implicit class IntVarSeq(val peer: Array[IntVar]) extends AnyVal {
+    def apply(index: IntVar) : IntVar = intVarAt(index, peer)
+  }
+
+  implicit class IntSeq(val peer: Array[Int]) extends AnyVal {
+    def apply(index: IntVar) : IntVar = intAt(index, peer)
+  }
 
   // =============== Global constraints ===============
 
@@ -99,7 +107,7 @@ package object scala {
     val result = new IntVar()
     val c = new Sum(res.toArray.asInstanceOf[Array[org.jacop.core.IntVar]], result)
     impModel.constr += c
-    return result
+    result
   }
 
 /**
@@ -127,7 +135,7 @@ package object scala {
     val c = new SumWeight(res.toArray.asInstanceOf[Array[org.jacop.core.IntVar]], w, result)
     if (trace) println(c)
     impModel.impose( c )
-    return result
+    result
   }
 
 /**
@@ -155,7 +163,7 @@ package object scala {
     val c = new SumWeightDom(res.toArray.asInstanceOf[Array[org.jacop.core.IntVar]], w, result)
     if (trace) println(c)
     impModel.impose( c )
-    return result
+    result
   }
 
 /**
@@ -169,7 +177,7 @@ package object scala {
     val c = new AbsXeqY(x, result)
     if (trace) println(c)
     impModel.impose( c )
-    return result
+    result
   }
 
 /**
@@ -188,7 +196,7 @@ package object scala {
 * Wrapper for [[org.jacop.constraints.Min]].
 *
 * @param x array of variables where mnimimum values is to be found. 
-* @param mx minimum value. 
+* @param mn minimum value.
 */
   def min[T <: org.jacop.core.IntVar](x: List[T], mn: org.jacop.core.IntVar )(implicit m: ClassTag[T]) {
     val c = new Min(x.toArray.asInstanceOf[Array[org.jacop.core.IntVar]], mn)
@@ -199,27 +207,27 @@ package object scala {
 /**
 * Wrapper for [[org.jacop.constraints.Max]].
 *
-* @param res array of variables where maximum values is to be found. 
+* @param x array of variables where maximum values is to be found.
 * @return max value. 
 */
   def max[T <: org.jacop.core.IntVar](x: List[T])(implicit m: ClassTag[T]) : IntVar = {
     val result = new IntVar()
     val c = new Max(x.toArray.asInstanceOf[Array[org.jacop.core.IntVar]], result)
     impModel.constr += c
-    return result
+    result
   }
 
 /**
 * Wrapper for [[org.jacop.constraints.Min]].
 *
-* @param res array of variables where minimum values is to be found. 
+* @param x array of variables where minimum values is to be found.
 * @return minimum value. 
 */
   def min[T <: org.jacop.core.IntVar](x: List[T])(implicit m: ClassTag[T]) : IntVar = {
     val result = new IntVar()
     val c = new Min(x.toArray.asInstanceOf[Array[org.jacop.core.IntVar]], result)
     impModel.constr += c
-    return result
+    result
   }
 
 /**
@@ -245,7 +253,7 @@ package object scala {
     val c = new Count(list.toArray.asInstanceOf[Array[org.jacop.core.IntVar]], result, value)
     impModel.constr += c
     println(result) 
-    return result
+    result
   }
 
 /**
@@ -270,7 +278,7 @@ package object scala {
     val result = new IntVar()
     val c = new Values(list.toArray.asInstanceOf[Array[org.jacop.core.IntVar]], result)
     impModel.constr += c
-    return result
+    result
   }
 
 /**
@@ -326,6 +334,29 @@ package object scala {
     val c = new Element(index, elements.toArray.asInstanceOf[Array[org.jacop.core.IntVar]], value, offset)
     if (trace) println(c)
     impModel.impose( c )
+  }
+
+  /** Wrapper for [[org.jacop.constraints.Element]].
+    *
+    * @param index    index to select element from list of elements.
+    * @param xs       array of integers that can be assigned to values.
+    * @param offset   value of index offset (shift).
+    * @return         the variable yielding the element at the given index
+    */
+  def intAt(index: IntVar, xs: Array[Int], offset: Int = 0) : IntVar = {
+    val result  = new IntVar()
+    val c       = new Element(index, xs, result, offset)
+    if (trace) println(c)
+    impModel.impose(c)
+    result
+  }
+
+  def intVarAt(index: IntVar, xs: Array[IntVar], offset: Int = 0) : IntVar = {
+    val result  = new IntVar()
+    val c       = new Element(index, xs.asInstanceOf[Array[org.jacop.core.IntVar]], result, offset)
+    if (trace) println(c)
+    impModel.impose(c)
+    result
   }
 
 /**
@@ -568,7 +599,7 @@ package object scala {
     val c = new Or(list.toArray)
     list.foreach( e => impModel.constr.remove(impModel.constr.indexOf(e)) )
     impModel.constr += c
-    return c
+    c
   }
 
 /**
@@ -581,7 +612,7 @@ package object scala {
     val c = new Or(list.toArray)
     list.foreach( e => impModel.constr.remove(impModel.constr.indexOf(e)) )
     impModel.constr += c
-    return c
+    c
   }
 
 /**
@@ -594,7 +625,7 @@ package object scala {
     val c = new And(list.toArray)
     list.foreach( e => impModel.constr.remove(impModel.constr.indexOf(e)) )
     impModel.constr += c
-    return c
+    c
   }
 
 /**
@@ -607,7 +638,7 @@ package object scala {
     val c = new And(list.toArray)
     list.foreach( e => impModel.constr.remove(impModel.constr.indexOf(e)) )
     impModel.constr += c
-    return c
+    c
   }
 
 /**
@@ -620,7 +651,7 @@ package object scala {
     val c = new Not(constr)
     impModel.constr.remove(impModel.constr.indexOf(constr))
     impModel.constr += c
-    return c
+    c
   }
 
   // =============== Set constraints ===============
@@ -636,7 +667,7 @@ package object scala {
     val result = new IntVar()
     val c = new CardAeqX(s, result)
     impModel.constr += c
-    return result
+    result
   }
 
 /**
@@ -686,7 +717,7 @@ package object scala {
 */
    def minimize[T <: org.jacop.core.Var](select: SelectChoicePoint[T], cost: IntVar, printSolutions: (() => Unit)*)(implicit m: ClassTag[T]): Boolean = {
 
-     impModel.imposeAllConstraints
+     impModel.imposeAllConstraints()
 
      val label = dfs
      labels = Array(label)
@@ -700,8 +731,8 @@ package object scala {
        }
     
        //label.setSolutionListener(new EmptyListener[T]);
-       label.setPrintInfo(false);
-       label.setSolutionListener(new ScalaSolutionListener[T]);
+       label.setPrintInfo(false)
+       label.setSolutionListener(new ScalaSolutionListener[T])
      }
 
      if (limitOnSolutions > 0) {
@@ -709,7 +740,7 @@ package object scala {
        label.respectSolutionListenerAdvice=true
      }
 
-     return label.labeling(impModel, select, cost)
+     label.labeling(impModel, select, cost)
    }
 
 
@@ -725,20 +756,19 @@ package object scala {
     val costN = new IntVar("newCost", org.jacop.core.IntDomain.MinInt, org.jacop.core.IntDomain.MaxInt)
     costN #= -cost
 
-    return minimize(select, costN, printSolutions: _*)
+    minimize(select, costN, printSolutions: _*)
   }
 
 /**
 * Search method that finds a solution.
 *
 * @param select select method defining variable selection and value assignment methods.
-* @param cost Cost variable
 * @return true if solution found and false otherwise.
 */
 
   def satisfy[T <: org.jacop.core.Var](select: SelectChoicePoint[T], printSolutions: (() => Unit)*)(implicit m: ClassTag[T]): Boolean = {
 
-    impModel.imposeAllConstraints
+    impModel.imposeAllConstraints()
 
     val label = dfs
     labels = Array(label)
@@ -752,8 +782,8 @@ package object scala {
       }
     
       // label.setSolutionListener(new EmptyListener[T]);
-      label.setPrintInfo(false);
-      label.setSolutionListener(new ScalaSolutionListener[T]);
+      label.setPrintInfo(false)
+      label.setSolutionListener(new ScalaSolutionListener[T])
     }
 
     if (timeOutValue > 0)
@@ -767,7 +797,7 @@ package object scala {
     
     label.getSolutionListener().recordSolutions(recordSolutions)
 
-    return label.labeling(impModel, select)
+    label.labeling(impModel, select)
 
   }
 
@@ -775,14 +805,13 @@ package object scala {
 * Search method that finds all solutions.
 *
 * @param select select method defining variable selection and value assignment methods.
-* @param cost Cost variable
 * @return true if solution found and false otherwise.
 */
   def satisfyAll[T <: org.jacop.core.Var](select: SelectChoicePoint[T], printSolutions: (() => Unit)*)(implicit m: ClassTag[T]): Boolean = {
 
     allSolutions = true
 
-    return satisfy( select, printSolutions: _*)
+    satisfy( select, printSolutions: _*)
 
   }
 
@@ -796,7 +825,7 @@ package object scala {
 */
   def minimize_seq[T <: org.jacop.core.Var](select: List[SelectChoicePoint[T]], cost: IntVar, printSolutions: (() => Unit)*) (implicit m: ClassTag[T]): Boolean = {
 
-    impModel.imposeAllConstraints
+    impModel.imposeAllConstraints()
 
     val masterLabel = dfs
     labels = new Array(select.size)
@@ -804,7 +833,7 @@ package object scala {
 
     if (printSolutions.size > 0) {
       //masterLabel.setSolutionListener(new EmptyListener[T]);
-      masterLabel.setPrintInfo(false);
+      masterLabel.setPrintInfo(false)
     }
 
     if (limitOnSolutions > 0) 
@@ -819,14 +848,14 @@ package object scala {
       for (i <- 1 until select.length) {
        	val label = dfs
 	previousSearch.addChildSearch(label)
-	label.setSelectChoicePoint(select(i));
+	label.setSelectChoicePoint(select(i))
 	previousSearch = label
 	lastLabel = label
 	labels(i) = label
 
 	if (printSolutions.size > 0) {
 	  //label.setSolutionListener(new EmptyListener[T]);
-    label.setPrintInfo(false);
+    label.setPrintInfo(false)
 	}
 
 	if (limitOnSolutions > 0) 
@@ -844,8 +873,8 @@ package object scala {
 	i += 1
       }
 
-      lastLabel.setPrintInfo(false);
-      lastLabel.setSolutionListener(new ScalaSolutionListener[T]);
+      lastLabel.setPrintInfo(false)
+      lastLabel.setSolutionListener(new ScalaSolutionListener[T])
 
       if (limitOnSolutions > 0) {
 	lastLabel.getSolutionListener().setSolutionLimit(limitOnSolutions)
@@ -853,7 +882,7 @@ package object scala {
       }
     }
 
-    return masterLabel.labeling(impModel, select(0), cost)
+    masterLabel.labeling(impModel, select(0), cost)
   }
   
 /**
@@ -868,7 +897,7 @@ package object scala {
     val costN = new IntVar("newCost", org.jacop.core.IntDomain.MinInt, org.jacop.core.IntDomain.MaxInt)
     costN #= -cost
 
-    return minimize_seq(select, costN, printSolutions: _*)
+    minimize_seq(select, costN, printSolutions: _*)
   }
 
 
@@ -876,12 +905,11 @@ package object scala {
 * Search method for finding a solution using a sequence of search methods (specified by list of select methods).
 *
 * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
-* @param cost Cost variable
 * @return true if solution found and false otherwise.
 */
   def satisfy_seq[T <: org.jacop.core.Var](select: List[SelectChoicePoint[T]], printSolutions: (() => Unit)*)(implicit m: ClassTag[T]): Boolean = {
 
-    impModel.imposeAllConstraints
+    impModel.imposeAllConstraints()
 
     val masterLabel = dfs
     labels = new Array(select.size)
@@ -889,7 +917,7 @@ package object scala {
 
     if (printSolutions.size > 0) {
       //masterLabel.setSolutionListener(new EmptyListener[T]);
-      masterLabel.setPrintInfo(false);
+      masterLabel.setPrintInfo(false)
     }    
 
     if (timeOutValue > 0)
@@ -906,14 +934,14 @@ package object scala {
       for (i <- 1 until select.length) {
        	val label = dfs
 	previousSearch.addChildSearch(label)
-	label.setSelectChoicePoint(select(i));
+	label.setSelectChoicePoint(select(i))
 	previousSearch = label
 	lastLabel = label
 	labels(i) = label
 
 	if (printSolutions.size > 0) {
 	  //label.setSolutionListener(new EmptyListener[T]);
-    label.setPrintInfo(false);
+    label.setPrintInfo(false)
 	}
 
 	if (timeOutValue > 0)
@@ -933,7 +961,7 @@ package object scala {
       	i += 1
       }
     
-      lastLabel.setPrintInfo(false);
+      lastLabel.setPrintInfo(false)
       lastLabel.setSolutionListener(new ScalaSolutionListener[T]);
 
       if (limitOnSolutions > 0) 
@@ -942,21 +970,20 @@ package object scala {
 
     lastLabel.getSolutionListener().recordSolutions(recordSolutions)
 
-    return masterLabel.labeling(impModel, select(0))
+    masterLabel.labeling(impModel, select(0))
   }
 
 /**
 * Search method for finding all solutions using a sequence of search methods (specified by list of select methods).
 *
 * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
-* @param cost Cost variable
 * @return true if solution found and false otherwise.
 */
   def satisfyAll_seq[T <: org.jacop.core.Var](select: List[SelectChoicePoint[T]], printSolutions: (() => Unit)*)(implicit m: ClassTag[T]): Boolean = {
 
     allSolutions = true
 
-    return satisfy_seq( select, printSolutions: _* )
+    satisfy_seq( select, printSolutions: _* )
 
   }
 
@@ -968,12 +995,12 @@ package object scala {
   def dfs[T <: org.jacop.core.Var](implicit m: ClassTag[T]) : DepthFirstSearch[T] = {
     val label = new DepthFirstSearch[T]
 
-    label.setAssignSolution(true);
-    label.setSolutionListener(new PrintOutListener[T]());
+    label.setAssignSolution(true)
+    label.setSolutionListener(new PrintOutListener[T]())
     if (allSolutions)
       label.getSolutionListener().searchAll(true)
 
-    return label
+    label
 
   }
 
@@ -1014,7 +1041,7 @@ package object scala {
 * Defines functions that prints search statistics
 * 
 */
-  def statistics {
+  def statistics() {
     var nodes=0
     var decisions=0
     var wrong=0

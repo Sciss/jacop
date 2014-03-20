@@ -56,7 +56,7 @@ import org.jacop.core.Var;
  * make addressing of list array starting from 1.
  * 
  * @author Krzysztof Kuchcinski and Radoslaw Szymanek
- * @version 3.0
+ * @version 4.0
  */
 
 public class ElementVariable extends Constraint {
@@ -112,6 +112,8 @@ public class ElementVariable extends Constraint {
 	 * @param indexOffset shift applied to index variable. 
 	 */
 	public ElementVariable(IntVar index, IntVar[] list, IntVar value, int indexOffset) {
+
+	        queueIndex = 2;
 
 		assert (index != null) : "Variable index is null";
 		assert (list != null) : "Variable list is null";
@@ -251,12 +253,18 @@ public class ElementVariable extends Constraint {
 			}
 		    }
 
-		    IntDomain valDomain = new IntervalDomain();
+		    // IntDomain valDomain = new IntervalDomain();
+		    int valMin=IntDomain.MaxInt, valMax=IntDomain.MinInt;
 		    for (ValueEnumeration e = index.domain.valueEnumeration(); e.hasMoreElements();) {
 			int position = e.nextElement() - 1 - indexOffset;
-			valDomain.addDom(list[position].domain);
+			// valDomain.addDom(list[position].domain);
+			int min = list[position].domain.min();
+			int max = list[position].domain.max();
+			valMin = (valMin > min) ? min : valMin;
+			valMax = (valMax < max) ? max : valMax;
 		    }
-		    value.domain.in(store.level, value, valDomain);
+		    value.domain.in(store.level, value, valMin, valMax);
+		    // value.domain.in(store.level, value, valDomain);
 
 		    // Consequtive execution of the consistency function. 
 
@@ -273,9 +281,7 @@ public class ElementVariable extends Constraint {
 				list[position].removeConstraint(this);
 
 			    }
-
 			}
-
 		    }
 
 			if (indexHasChanged) {
@@ -358,11 +364,7 @@ public class ElementVariable extends Constraint {
 								index.domain.inComplement(store.level, index, additionalPosition + 1 + indexOffset);
 						
 					}
-
-
 				}
-
-
 
 			}
 
@@ -372,7 +374,6 @@ public class ElementVariable extends Constraint {
 			variableQueue.clear();
 
 		}
-
 	}
 
 
