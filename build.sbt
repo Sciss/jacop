@@ -2,7 +2,7 @@
 
 name              := "jacop"
 
-version           := "3.3.0"  // our own version
+version           := "3.4.0"     // our own version; corresponds with original jacop version 4.0.0
 
 organization      := "de.sciss"  // we publish under this group ID
 
@@ -18,6 +18,11 @@ autoScalaLibrary  := false
 
 crossPaths        := false
 
+javacOptions := Seq("-source", "1.6", "-target", "1.6")
+
+// sbt piece of shit: https://github.com/sbt/sbt/issues/355 "Invalid". Suckers...
+javacOptions in doc := Seq("-source", "1.6")
+
 // as long as I don't know how to emulate the maven javacc / jjtree plugin,
 // disable the compilation of the FlatZinc front-end.
 //
@@ -27,7 +32,7 @@ unmanagedSources in Compile := {
   val js   = (javaSource in Compile).value
   val base = js / "org" / "jacop"
   val ex1  = (base / "fz") ** "*.java"
-  val ex2  = (base / "examples" / "RunExample.java")
+  val ex2  = base / "examples" / "RunExample.java"
   val ss   = (scalaSource in Compile).value
   val ex3  = ss ** "*.scala"
   val excl = ex1 +++ ex2 +++ ex3
@@ -35,6 +40,11 @@ unmanagedSources in Compile := {
   val next = prev --- excl
   next.get
 }
+
+libraryDependencies ++= Seq(
+  "junit" % "junit" % "4.11" % "test",
+  "com.novocode" % "junit-interface" % "0.9" % "test"
+)
 
 // ---- publishing ----
 
