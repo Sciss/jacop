@@ -50,7 +50,7 @@ unmanagedSources in Test := {
 
 libraryDependencies ++= Seq(
   "junit"        % "junit"           % "4.12"    % Test,
-  "com.novocode" % "junit-interface" % "0.9"     % Test,
+  "com.novocode" % "junit-interface" % "0.11"    % Test,
   "org.mockito"  % "mockito-all"     % "1.10.19" % Test
 )
 
