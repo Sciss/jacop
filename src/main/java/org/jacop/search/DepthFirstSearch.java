@@ -1,37 +1,37 @@
-/**
- *  DepthFirstSearch.java 
- *  This file is part of JaCoP.
- *
- *  JaCoP is a Java Constraint Programming solver. 
- *	
- *	Copyright (C) 2000-2008 Krzysztof Kuchcinski and Radoslaw Szymanek
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *  
- *  Notwithstanding any other provision of this License, the copyright
- *  owners of this work supplement the terms of this License with terms
- *  prohibiting misrepresentation of the origin of this work and requiring
- *  that modified versions of this work be marked in reasonable ways as
- *  different from the original version. This supplement of the license
- *  terms is in accordance with Section 7 of GNU Affero General Public
- *  License version 3.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
+/*
+ * DepthFirstSearch.java
+ * This file is part of JaCoP.
+ * <p>
+ * JaCoP is a Java Constraint Programming solver.
+ * <p>
+ * Copyright (C) 2000-2008 Krzysztof Kuchcinski and Radoslaw Szymanek
+ * <p>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * <p>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ * <p>
+ * Notwithstanding any other provision of this License, the copyright
+ * owners of this work supplement the terms of this License with terms
+ * prohibiting misrepresentation of the origin of this work and requiring
+ * that modified versions of this work be marked in reasonable ways as
+ * different from the original version. This supplement of the license
+ * terms is in accordance with Section 7 of GNU Affero General Public
+ * License version 3.
+ * <p>
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package org.jacop.search;
 
 import java.lang.reflect.Array;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jacop.constraints.Constraint;
 import org.jacop.constraints.Not;
@@ -47,1267 +47,1350 @@ import org.jacop.core.Var;
 import org.jacop.set.core.SetDomain;
 import org.jacop.set.core.SetVar;
 
+import org.jacop.floats.core.FloatDomain;
+import org.jacop.floats.core.FloatVar;
+import org.jacop.floats.constraints.PltC;
+
 /**
  * Implements Depth First Search with number of possible plugins (listeners) to
  * be attached to modify the search.
- * 
+ *
  * @author Radoslaw Szymanek and Krzysztof Kuchcinski
- * @version 4.0
+ * @version 4.5
  * @param <T> type of variables used in this search. 
  */
 
 public class DepthFirstSearch<T extends Var> implements Search<T> {
 
-	//@todo make debugAll be used in printing statements.
-	static final boolean debugAll = true;
-
-	/**
-	 * If it is set to true then the optimizing search will 
-	 * quit the search if this action is indicated by the solution
-	 * listener.
-	 */
-	public boolean respectSolutionListenerAdvice = false;
-
-	/**
-	 * It decides if the found solution is immediately assigned to
-         * the store.* If the solution is not assigned immediately
-         * after the search is concluded but later then special care
-         * may be required. As soon as search exits all
-         * propagations (including the first time consistency execution
-         * of the constraints) may be forgotten. Even worse some
-         * values of the variables for which the constraint was
-         * never aware of (not even at impose time) may appear back in
-         * the domain. The best remedy for this problem is to call
-         * store.consistency() method once and only once after the
-         * model is imposed and before the search is executed and never
-         * remove the level at which the store resides after
-         * store.consistency() method is executed.
-	 */
-
-	boolean assignSolution = true;
-
-	/**
-	 * It specifies after how many backtracks the search exits.
-	 */
-	long backtracksOut = -1;
-
-	/**
-	 * It specifies if the backtrack out is on.
-	 */
-
-	boolean backtracksOutCheck = false;
-
-	/**
-	 * It specifies if search can exit before the search has finished.
-	 */
-	boolean check = false;
-
-	/**
-	 * It represents the constraint which enforces that next solution is better
-	 * than currently best solution.
-	 */
-
-	Constraint cost = null;
-
-	/**
-	 * It represents the cost value of currently best solution.
-	 */
-	public int costValue = Integer.MAX_VALUE;
-
-	/**
-	 * It represents the cost variable.
-	 */
-
-	public IntVar costVariable = null;
-
-	boolean optimize = false;
-	
-	/**
-	 * It stores number of nodes with decisions during search.
-	 */
-	int decisions = 0;
-
-	/**
-	 * It specifies after how many decisions the search exits.
-	 */
-	long decisionsOut = -1;
-
-	/**
-	 * It specifies if the decisions out is on.
-	 */
-	boolean decisionsOutCheck = false;
-
-	/**
-	 * It represents current depth of store used in search.
-	 */
-	int depth = 0;
-
-	/**
-	 * It stores current depth of the search excluding paths in a search tree.
-	 */
-
-	int depthExcludePaths = 0;
-
-	/**
-	 * It represents the choice point selection heuristic.
-	 */
-
-	SelectChoicePoint<T> heuristic = null;
-
-	/**
-	 * It is invoked when returning from left or right child.
-	 */
-
-	public ExitChildListener<T> exitChildListener;
+    //@todo make debugAll be used in printing statements.
+    static final boolean debugAll = true;
+
+    /**
+     * If it is set to true then the optimizing search will 
+     * quit the search if this action is indicated by the solution
+     * listener.
+     */
+    public boolean respectSolutionListenerAdvice = false;
+
+    /**
+     * It decides if the found solution is immediately assigned to
+     * the store.* If the solution is not assigned immediately
+     * after the search is concluded but later then special care
+     * may be required. As soon as search exits all
+     * propagations (including the first time consistency execution
+     * of the constraints) may be forgotten. Even worse some
+     * values of the variables for which the constraint was
+     * never aware of (not even at impose time) may appear back in
+     * the domain. The best remedy for this problem is to call
+     * store.consistency() method once and only once after the
+     * model is imposed and before the search is executed and never
+     * remove the level at which the store resides after
+     * store.consistency() method is executed.
+     */
+
+    boolean assignSolution = true;
+
+    /**
+     * It specifies after how many backtracks the search exits.
+     */
+    long backtracksOut = -1;
+
+    /**
+     * It specifies if the backtrack out is on.
+     */
+
+    boolean backtracksOutCheck = false;
+
+    /**
+     * It specifies if search can exit before the search has finished.
+     */
+    boolean check = false;
+
+    /**
+     * It represents the constraint which enforces that next solution is better
+     * than currently best solution.
+     */
+
+    Constraint cost = null;
+
+    /**
+     * It represents the cost value of currently best solution for IntVar cost.
+     */
+    public int costValue = Integer.MAX_VALUE;
+
+    /**
+     * It represents the cost value of currently best solution for FloatVar cost.
+     */
+    public double costValueFloat = FloatDomain.MaxFloat;
+
+    /**
+     * It represents the cost variable.
+     */
+
+    public Var costVariable = null;
+
+    boolean optimize = false;
+
+    /**
+     * It stores number of nodes with decisions during search.
+     */
+    int decisions = 0;
+
+    /**
+     * It specifies after how many decisions the search exits.
+     */
+    long decisionsOut = -1;
+
+    /**
+     * It specifies if the decisions out is on.
+     */
+    boolean decisionsOutCheck = false;
+
+    /**
+     * It represents current depth of store used in search.
+     */
+    int depth = 0;
 
-	/**
-	 * It is invoked when consistency function has been executed.
-	 */
+    /**
+     * It stores current depth of the search excluding paths in a search tree.
+     */
 
-	public ConsistencyListener consistencyListener;
+    int depthExcludePaths = 0;
 
-	/**
-	 * It is executed when a solution is found.
-	 */
+    /**
+     * It represents the choice point selection heuristic.
+     */
+
+    SelectChoicePoint<T> heuristic = null;
 
-	public SolutionListener<T> solutionListener = new SimpleSolutionListener<T>();
+    /**
+     * It is invoked when returning from left or right child.
+     */
 
-	/**
-	 * It is executed when search is started, before entering the search.
-	 */
+    public ExitChildListener<T> exitChildListener;
 
-	public InitializeListener initializeListener;
-		
-	/**
-	 * It stores the maximum depth reached during search.
-	 */
-	int maxDepth = 0;
+    /**
+     * It is invoked when consistency function has been executed.
+     */
 
-	/**
-	 * It stores the maximum depth of the search excluding paths.
-	 */
-	int maxDepthExcludePaths = 0;
+    public ConsistencyListener consistencyListener;
 
-	/**
-	 * It stores number of nodes visited during search.
-	 */
-	int nodes = 0;
+    /**
+     * It is executed when a solution is found.
+     */
 
-	/**
-	 * It specifies after how many nodes the search exits.
-	 */
-	long nodesOut = -1;
+    public SolutionListener<T> solutionListener = new SimpleSolutionListener<T>();
 
-	/**
-	 * It specifies if the nodes out is on.
-	 */
-	boolean nodesOutCheck = false;
+    /**
+     * It is executed when search is started, before entering the search.
+     */
 
-	/**
-	 * It stores number of backtracks during search. A backtrack is a search
-	 * node for which all children has failed.
-	 */
-	int numberBacktracks = 0;
+    public InitializeListener initializeListener;
 
-	/**
-	 * It decides if information about search is printed.
-	 */
+    /**
+     * It stores the maximum depth reached during search.
+     */
+    int maxDepth = 0;
 
-	boolean printInfo = true;
+    /**
+     * It stores the maximum depth of the search excluding paths.
+     */
+    int maxDepthExcludePaths = 0;
 
-	/**
-	 * It stores searches which will be executed when this one has assign all
-	 * its variables.
-	 */
+    /**
+     * It stores number of nodes visited during search.
+     */
+    int nodes = 0;
 
-	public Search<? extends Var>[] childSearches;
+    /**
+     * It specifies after how many nodes the search exits.
+     */
+    long nodesOut = -1;
 
-	/**
-	 * If this search is a sub-search then this pointer will point out to the
-	 * master search (i.e. the search which have invoked this search).
-	 */
+    /**
+     * It specifies if the nodes out is on.
+     */
+    boolean nodesOutCheck = false;
 
-	public Search<? extends Var> masterSearch;
+    /**
+     * It stores number of backtracks during search. A backtrack is a search
+     * node for which all children has failed.
+     */
+    int numberBacktracks = 0;
 
-	/**
-	 * It represents store within which a search is performed.
-	 */
+    /**
+     * It decides if information about search is printed.
+     */
 
-	public Store store = null;
+    boolean printInfo = true;
 
-	/**
-	 * The object informed about the determination of the timeout.
-	 */
+    /**
+     * It stores searches which will be executed when this one has assign all
+     * its variables.
+     */
 
-	TimeOutListener timeOutListener = null;
+    public Search<? extends Var>[] childSearches;
 
-	/**
-	 * It is executed upon search exit. It allows to add learnt constraints.
-	 */
+    /**
+     * If this search is a sub-search then this pointer will point out to the
+     * master search (i.e. the search which have invoked this search).
+     */
 
-	ExitListener exitListener = null;
+    public Search<? extends Var> masterSearch;
 
-	/**
-	 * It specifies the exact time point after which the timeout will occur (in
-	 * miliseconds).
-	 */
+    /**
+     * It represents store within which a search is performed.
+     */
 
-	long timeOut;
+    public Store store = null;
 
-	/**
-	 * It specifies if the timeout is on.
-	 */
+    /**
+     * The object informed about the determination of the timeout.
+     */
 
-	boolean timeOutCheck = false;
+    TimeOutListener timeOutListener = null;
 
-	/**
-	 * It specifies that the time-out has occured
-	 */
+    /**
+     * It is executed upon search exit. It allows to add learnt constraints.
+     */
 
-	public boolean timeOutOccured;
+    ExitListener exitListener = null;
 
-	/**
-	 * It specifies the number of seconds after which the search will timeout.
-	 */
+    /**
+     * It specifies the exact time point after which the timeout will occur (in
+     * miliseconds).
+     */
 
-	long tOut = -1;
+    long timeOut;
 
-	/**
-	 * It stores number of wrong decisions during search. A wrong decision is a
-	 * leaf of a search which has failed.
-	 */
+    /**
+     * It specifies if the timeout is on.
+     */
 
-	int wrongDecisions = 0;
+    boolean timeOutCheck = false;
 
-	/**
-	 * It specifies after how many wrong decisions the search exits.
-	 */
+    /**
+     * It specifies that the time-out has occured
+     */
 
-	long wrongDecisionsOut = -1;
+    public boolean timeOutOccured;
 
-	/**
-	 * It specifies if the wrong decisions out is on.
-	 */
+    /**
+     * It specifies the number of seconds after which the search will timeout.
+     */
 
-	boolean wrongDecisionsOutCheck = false;
+    long tOut = -1;
 
-	static int no = 0;
+    /**
+     * It stores number of wrong decisions during search. A wrong decision is a
+     * leaf of a search which has failed.
+     */
 
-	/**
-	 * It specifies the id of the search.
-	 */
-	public String id = "DFS" + no;
+    int wrongDecisions = 0;
 
-	/**
-	 * It specifies if for setVar based search the left branch should impose EinA constraint.
-	 */
-	public boolean einAinleftTree = true;
-	
-	/**
-	 * It sets the id of the store.
-	 * @param name the id of the store object.
-	 */
-	public void setID(String name) {
-		id = name;
-	}
+    /**
+     * It specifies after how many wrong decisions the search exits.
+     */
 
-	public String id() {
-		return id;
-	}
+    long wrongDecisionsOut = -1;
 
-	/**
-	 * It specifies current child search.
-	 */
+    /**
+     * It specifies if the wrong decisions out is on.
+     */
 
-	public DepthFirstSearch() {
+    boolean wrongDecisionsOutCheck = false;
 
-		no++;
 
-	}
+    static AtomicInteger no = new AtomicInteger(0);
 
-	public void setChildSearch(Search<? extends Var>[] child) {
+    /**
+     * It specifies the id of the search.
+     */
+    public String id;
+
+    /**
+     * It specifies if for setVar based search the left branch should impose EinA constraint.
+     */
+    public boolean einAinleftTree = true;
+
+    /**
+     * It sets the id of the store.
+     * @param name the id of the store object.
+     */
+    public void setID(String name) {
+        id = name;
+    }
+
+    public String id() {
+        return id;
+    }
+
+    /**
+     * It specifies current child search.
+     */
+
+    public DepthFirstSearch() {
+        id = "DFS" + no.incrementAndGet();
+    }
+
+    public void setChildSearch(Search<? extends Var>[] child) {
 
         if (childSearches != null) {
             for (Search<? extends Var> c : childSearches)
                 c.setMasterSearch(null);
         }
-		childSearches = child;
+        childSearches = child;
 
         if (childSearches != null) {
             for (Search<? extends Var> c : childSearches)
                 c.setMasterSearch(this);
         }
 
-	}
+    }
 
-	public void addChildSearch(Search<? extends Var> child) {
+    @SuppressWarnings("unchecked") public void addChildSearch(Search<? extends Var> child) {
 
-		if (childSearches == null) {
-			childSearches = (Search<? extends Var>[])Array.newInstance(child.getClass(), 1);
-			// FIXME, check and removed.
-	//		childSearches = new Search[1];
-			childSearches[0] = child;
-		} else {
+        if (childSearches == null) {
+            childSearches = (Search<? extends Var>[]) Array.newInstance(child.getClass(), 1);
+            // FIXME, check and removed.
+            //		childSearches = new Search[1];
+            childSearches[0] = child;
+        } else {
 
-			Search<? extends Var>[] old = childSearches;
-			childSearches = (Search<? extends Var>[])Array.newInstance(child.getClass(), childSearches.length + 1);
-			// FIXME, check and remove.
-			//	childSearches = new Search[childSearches.length + 1];
-			System.arraycopy(old, 0, childSearches, 0, old.length);
-			childSearches[old.length] = child;
-		}
+            Search<? extends Var>[] old = childSearches;
+            childSearches = (Search<? extends Var>[]) Array.newInstance(child.getClass(), childSearches.length + 1);
+            // FIXME, check and remove.
+            //	childSearches = new Search[childSearches.length + 1];
+            System.arraycopy(old, 0, childSearches, 0, old.length);
+            childSearches[old.length] = child;
+        }
 
         child.setMasterSearch(this);
 
-	}
+    }
 
-	/**
-	 * It remembers what child search has been already examined.
-	 */
-	public int currentChildSearch = -1;
+    /**
+     * It remembers what child search has been already examined.
+     */
+    public int currentChildSearch = -1;
 
-	public void setSelectChoicePoint(SelectChoicePoint<T> select) {
-		heuristic = select;
-	}
+    public void setSelectChoicePoint(SelectChoicePoint<T> select) {
+        heuristic = select;
+    }
 
-	/**
-	 * It returns number of backtracks performed by the search.
-	 */
-	public int getBacktracks() {
-		return numberBacktracks;
-	}
+    /**
+     * It returns number of backtracks performed by the search.
+     */
+    public int getBacktracks() {
+        return numberBacktracks;
+    }
 
-	/**
-	 * It returns number of decisions performed by the search.
-	 */
-	public int getDecisions() {
-		return decisions;
-	}
+    /**
+     * It returns number of decisions performed by the search.
+     */
+    public int getDecisions() {
+        return decisions;
+    }
 
-	/**
-	 * It returns the maximum depth reached by a search.
-	 */
+    /**
+     * It returns the maximum depth reached by a search.
+     */
 
-	public int getMaximumDepth() {
-		return maxDepthExcludePaths;
-	}
+    public int getMaximumDepth() {
+        return maxDepthExcludePaths;
+    }
 
-	/**
-	 * It returns number of search nodes explored by the search.
-	 */
-	public int getNodes() {
-		return nodes;
-	}
+    /**
+     * It returns number of search nodes explored by the search.
+     */
+    public int getNodes() {
+        return nodes;
+    }
 
-	/**
-	 * It returns number of wrong decisions performed by the search.
-	 */
-	public int getWrongDecisions() {
-		return wrongDecisions;
-	}
+    /**
+     * It returns number of wrong decisions performed by the search.
+     */
+    public int getWrongDecisions() {
+        return wrongDecisions;
+    }
 
-	public Domain[] getSolution() {
-		return solutionListener.getSolution(solutionListener.solutionsNo());
-	}
+    public Domain[] getSolution() {
+        return solutionListener.getSolution(solutionListener.solutionsNo());
+    }
 
-	public Domain[] getSolution(int no) {
-		return solutionListener.getSolution(no);
-	}
+    public Domain[] getSolution(int no) {
+        return solutionListener.getSolution(no);
+    }
 
-	public T[] getVariables() {
+    public T[] getVariables() {
 
-		T[] vars = solutionListener.getVariables();
+        T[] vars = solutionListener.getVariables();
 
-		if (vars != null)
-			return vars;
+        if (vars != null)
+            return vars;
 
-		assert (false) : "Fix it. Uncomment below.";
+        assert (false) : "Fix it. Uncomment below.";
+
+        return null;
+
+	/*
+	  IdentityHashMap<T, Integer> position = heuristic.getVariablesMapping();
+
+	  vars = new Var[position.size()];
+
+	  for (Iterator<? extends Var> itr = position.keySet().iterator(); itr
+	  .hasNext();) {
+	  Var current = itr.next();
+	  vars[position.get(current)] = current;
+	  }
+
+	  return vars;
 		
-		return null;
-		
-		/*
-		IdentityHashMap<T, Integer> position = heuristic.getVariablesMapping();
+	*/
+    }
 
-		vars = new Var[position.size()];
+    public SolutionListener<T> getSolutionListener() {
 
-		for (Iterator<? extends Var> itr = position.keySet().iterator(); itr
-				.hasNext();) {
-			Var current = itr.next();
-			vars[position.get(current)] = current;
-		}
+        return solutionListener;
 
-		return vars;
-		
-		*/
-	}
+    }
 
-	public SolutionListener<T> getSolutionListener() {
+    /**
+     * This function is called recursively to assign variables one by one.
+     */
 
-		return solutionListener;
+    public boolean label(int firstVariable) {
 
-	}
+        int val = 0;
+        T fdv;
+        PrimitiveConstraint choice = null;
+        boolean consistent;
 
-	/**
-	 * This function is called recursively to assign variables one by one.
-	 */
+        // int textInterfaceLength = 0;
 
-	public boolean label(int firstVariable) {
+        if (check) {
 
-		int val = 0;
-		T fdv;
-		PrimitiveConstraint choice = null;
-		boolean consistent;
+            if (timeOutCheck)
+                if (System.currentTimeMillis() > timeOut) {
+                    timeOutOccured = true;
+                    if (timeOutListener != null)
+                        timeOutListener.executedAtTimeOut(solutionListener.solutionsNo());
+                    return false;
+                }
 
-		// int textInterfaceLength = 0;
+            if (nodesOutCheck)
+                if (nodes > nodesOut) {
+                    timeOutOccured = true;
+                    if (timeOutListener != null)
+                        timeOutListener.executedAtTimeOut(solutionListener.solutionsNo());
+                    return false;
+                }
 
-		if (check) {
+            if (decisionsOutCheck)
+                if (decisions > decisionsOut) {
+                    timeOutOccured = true;
+                    if (timeOutListener != null)
+                        timeOutListener.executedAtTimeOut(solutionListener.solutionsNo());
+                    return false;
+                }
 
-			if (timeOutCheck)
-				if (System.currentTimeMillis() > timeOut) {
-					timeOutOccured = true;
-					if (timeOutListener != null)
-						timeOutListener.executedAtTimeOut(solutionListener
-								.solutionsNo());
-					return false;
-				}
+            if (wrongDecisionsOutCheck)
+                if (wrongDecisions > wrongDecisionsOut) {
+                    timeOutOccured = true;
+                    if (timeOutListener != null)
+                        timeOutListener.executedAtTimeOut(solutionListener.solutionsNo());
+                    return false;
+                }
 
-			if (nodesOutCheck)
-				if (nodes > nodesOut) {
-					timeOutOccured = true;
-					if (timeOutListener != null)
-						timeOutListener.executedAtTimeOut(solutionListener
-								.solutionsNo());
-					return false;
-				}
+            if (backtracksOutCheck)
+                if (numberBacktracks > backtracksOut) {
+                    timeOutOccured = true;
+                    if (timeOutListener != null)
+                        timeOutListener.executedAtTimeOut(solutionListener.solutionsNo());
+                    return false;
+                }
 
-			if (decisionsOutCheck)
-				if (decisions > decisionsOut) {
-					timeOutOccured = true;
-					if (timeOutListener != null)
-						timeOutListener.executedAtTimeOut(solutionListener
-								.solutionsNo());
-					return false;
-				}
+        }
 
-			if (wrongDecisionsOutCheck)
-				if (wrongDecisions > wrongDecisionsOut) {
-					timeOutOccured = true;
-					if (timeOutListener != null)
-						timeOutListener.executedAtTimeOut(solutionListener
-								.solutionsNo());
-					return false;
-				}
+        // Instead of imposing constraint just restrict bounds
+        // -1 since costValue is the cost of last solution
+        if (optimize && cost != null)
+            try {
+                // cost IntVar
+                if (costVariable instanceof IntVar) {
+                    if (((IntVar) costVariable).min() <= costValue - 1)
+                        ((IntVar) costVariable).domain.in(store.level, (IntVar) costVariable, ((IntVar) costVariable).min(), costValue - 1);
+                    else {
+                        if (consistencyListener != null)
+                            consistencyListener.executeAfterConsistency(false);
 
-			if (backtracksOutCheck)
-				if (numberBacktracks > backtracksOut) {
-					timeOutOccured = true;
-					if (timeOutListener != null)
-						timeOutListener.executedAtTimeOut(solutionListener
-								.solutionsNo());
-					return false;
-				}
+                        return false;
+                    }
+                }
+                // cost FloatVar
+                else if (costVariable instanceof FloatVar) {
+                    if (((FloatVar) costVariable).min() <= FloatDomain.previous(costValueFloat))
+                        ((FloatVar) costVariable).domain.in(store.level, (FloatVar) costVariable, ((FloatVar) costVariable).min(),
+                            FloatDomain.previous(costValueFloat));
+                    else {
+                        if (consistencyListener != null)
+                            consistencyListener.executeAfterConsistency(false);
 
-		}
+                        return false;
+                    }
+                }
+            } catch (FailException f) {
+                if (consistencyListener != null)
+                    consistencyListener.executeAfterConsistency(false);
+                return false;
+            }
 
-		// Instead of imposing constraint just restrict bounds
-		// -1 since costValue is the cost of last solution
-		if (optimize && cost != null)
-			try {
-				if (costVariable.min() <= costValue - 1)
-					costVariable.domain.in(store.level, costVariable,
-							costVariable.min(), costValue - 1);
-				else {
-				    if (consistencyListener != null)
-					consistencyListener.executeAfterConsistency(false);
+        // all search nodes begins here
+        nodes++;
 
-					return false;
-				}
-			} catch (FailException f) {
-			    if (consistencyListener != null)
-				consistencyListener.executeAfterConsistency(false);
-			    return false;
-			}
+        consistent = store.consistency();
 
-		// all search nodes begins here
-		nodes++;
-		
-		consistent = store.consistency();
-				
-		if (consistencyListener != null)
-			consistent = consistencyListener.executeAfterConsistency(consistent);
-		
-		if (!consistent) {
-			// Failed leaf of the search tree
-			wrongDecisions++;
-			return false;
-		} else { // consistent
+        if (consistencyListener != null)
+            consistent = consistencyListener.executeAfterConsistency(consistent);
 
-			store.setLevel(++depth);
-			maxDepth = (depth > maxDepth) ? depth : maxDepth;
+        if (!consistent) {
+            // Failed leaf of the search tree
+            wrongDecisions++;
+            return false;
+        } else { // consistent
 
-			// Delete function indicates which is next variable for
-			// labeling
+            store.setLevel(++depth);
+            maxDepth = (depth > maxDepth) ? depth : maxDepth;
 
-			fdv = heuristic.getChoiceVariable(firstVariable);
+            // Delete function indicates which is next variable for
+            // labeling
 
-			if (fdv != null) {
+            fdv = heuristic.getChoiceVariable(firstVariable);
 
-				val = heuristic.getChoiceValue();				
-				assert (store.currentConstraint == null);
+            if (fdv != null) {
 
-		//		maybe a boolean flag, if search should work
-		//		C, not(C) versus not(C), C;
-				
-				/**
-				 * Possible changes to Search. Indomain returns int. 
-				 * for intVar it is an assignment. inValue(). 
-				 * for serVar this is EinA() constraint, inGLB(value)
-				 * add boolean flag reversedOrder = false; 
-				 * Only accepted for SetVar search. 
-				 * Double check that firstVariable is ok with this
-				 * non grounding of values even in case of var,value pair.
-				 */
-				
-				if (fdv instanceof IntVar)
-					((IntDomain)fdv.dom()).inValue(store.level, (IntVar)fdv, val);
-				
-				if (fdv instanceof SetVar)
-					if (einAinleftTree)
-						((SetDomain)fdv.dom()).inGLB(store.level, (SetVar)fdv, val);
-					else
-						((SetDomain)fdv.dom()).inLUBComplement(store.level, (SetVar)fdv, val);
-				
-				decisions++;
+                val = heuristic.getChoiceValue();
+                assert (store.currentConstraint == null);
 
-				depthExcludePaths++;
-				if (depthExcludePaths > maxDepthExcludePaths)
-					maxDepthExcludePaths = depthExcludePaths;
+                //		maybe a boolean flag, if search should work
+                //		C, not(C) versus not(C), C;
 
-			} else {
+                /**
+                 * Possible changes to Search. Indomain returns int.
+                 * for intVar it is an assignment. inValue().
+                 * for serVar this is EinA() constraint, inGLB(value)
+                 * add boolean flag reversedOrder = false;
+                 * Only accepted for SetVar search.
+                 * Double check that firstVariable is ok with this
+                 * non grounding of values even in case of var,value pair.
+                 */
 
-				choice = heuristic.getChoiceConstraint(firstVariable);
+                if (fdv instanceof IntVar)
+                    ((IntDomain) fdv.dom()).inValue(store.level, (IntVar) fdv, val);
 
-				if (choice == null) {
+                if (fdv instanceof SetVar)
+                    if (einAinleftTree)
+                        ((SetDomain) fdv.dom()).inGLB(store.level, (SetVar) fdv, val);
+                    else
+                        ((SetDomain) fdv.dom()).inLUBComplement(store.level, (SetVar) fdv, val);
 
-					// Solution already found so this is not a search node
-					nodes--;
-					// Execute subsearches if given.
-					
-					if (childSearches != null) {
+                decisions++;
 
-						boolean childResult = false;
+                depthExcludePaths++;
+                if (depthExcludePaths > maxDepthExcludePaths)
+                    maxDepthExcludePaths = depthExcludePaths;
+
+            } else {
+
+                choice = heuristic.getChoiceConstraint(firstVariable);
+
+                if (choice == null) {
+
+                    // Solution already found so this is not a search node
+                    nodes--;
+                    // Execute subsearches if given.
+
+                    if (childSearches != null) {
+
+                        boolean childResult = false;
                         boolean childFoundSolution = false;
-						currentChildSearch = 0;
+                        currentChildSearch = 0;
 
-						for (; currentChildSearch < childSearches.length
-								&& !childResult; currentChildSearch++) {
-							childSearches[currentChildSearch].getSolutionListener().setParentSolutionListener(solutionListener);
-							childSearches[currentChildSearch].setStore(store);
+                        for (; currentChildSearch < childSearches.length && !childResult; currentChildSearch++) {
+                            childSearches[currentChildSearch].getSolutionListener().setParentSolutionListener(solutionListener);
+                            childSearches[currentChildSearch].setStore(store);
 
-							if (costVariable != null)
-								childSearches[currentChildSearch].setCostVar(costVariable);
+                            if (costVariable != null)
+                                childSearches[currentChildSearch].setCostVar(costVariable);
 
                             int currentChildSolutionNo = childSearches[currentChildSearch].getSolutionListener().solutionsNo();
-							childResult = childSearches[currentChildSearch].labeling();
+                            childResult = childSearches[currentChildSearch].labeling();
                             if (childSearches[currentChildSearch].getSolutionListener().solutionsNo() > currentChildSolutionNo)
                                 childFoundSolution = true;
 
-							if (childResult)
-								break;
+                            if (childResult)
+                                break;
 
                             if (costVariable != null) {
-                                int childCostValue = childSearches[currentChildSearch].getCostValue();
-                                if (childCostValue < costValue) {
-                                    costValue = childCostValue;
-                                    cost = new XltC(costVariable, costValue);
-                                }
-                                if (childCostValue <= costVariable.min())
-                                // other child searches will not be able to find any solutions.
-                                    break;
-                                else {
-                                    costVariable.domain.inMax(store.level, costVariable, childCostValue - 1);
+                                if (costVariable instanceof IntVar) {
+                                    int childCostValue = childSearches[currentChildSearch].getCostValue();
+                                    if (childCostValue < costValue) {
+                                        costValue = childCostValue;
+                                        cost = new XltC((IntVar) costVariable, costValue);
+                                    }
+                                    if (childCostValue <= ((IntVar) costVariable).min())
+                                        // other child searches will not be able to find any solutions.
+                                        break;
+                                    else {
+                                        ((IntVar) costVariable).domain.inMax(store.level, (IntVar) costVariable, childCostValue - 1);
+                                    }
+                                } else if (costVariable instanceof FloatVar) {
+                                    double childCostValue = childSearches[currentChildSearch].getCostValueFloat();
+                                    if (childCostValue < costValueFloat) {
+                                        costValueFloat = childCostValue;
+                                        // cost = new PltC((FloatVar)costVariable, costValueFloat);
+                                        cost = new org.jacop.floats.constraints.PlteqC((FloatVar) costVariable,
+                                            FloatDomain.previous(costValueFloat)); //costValueFloat - FloatDomain.epsilon(costValueFloat));
+                                    }
+                                    if (childCostValue <= ((FloatVar) costVariable).min())
+                                        // other child searches will not be able to find any solutions.
+                                        break;
+                                    else {
+                                        ((FloatVar) costVariable).domain
+                                            .inMax(store.level, (FloatVar) costVariable, FloatDomain.previous(childCostValue));
+                                    }
                                 }
                             }
-						}
+                        }
 
-						if (childResult && costVariable != null) {
-							int childCostValue = childSearches[currentChildSearch].getCostValue();
-                            if (childCostValue < costValue)
-                                costValue = childCostValue;
-							cost = new XltC(costVariable, costValue);
-						}
-						
-						boolean stopMasterSearch = false;
-						
-						if (childResult || childFoundSolution) {
-							// Child search found solution, so there is a
-							// solution
-							// for this search too.
+                        if (childResult && costVariable != null) {
+                            if (costVariable instanceof IntVar) {
+                                int childCostValue = childSearches[currentChildSearch].getCostValue();
+                                if (childCostValue < costValue)
+                                    costValue = childCostValue;
+                                cost = new XltC((IntVar) costVariable, costValue);
+                            } else if (costVariable instanceof FloatVar) {
+                                double childCostValue = childSearches[currentChildSearch].getCostValueFloat();
+                                if (childCostValue < costValueFloat)
+                                    costValueFloat = childCostValue;
+                                cost = new PltC((FloatVar) costVariable, costValueFloat);
+                                // cost = new org.jacop.floats.constraints.PlteqC((FloatVar)costVariable, FloatDomain.previous(costValueFloat)); //costValueFloat - FloatDomain.epsilon(costValueFloat));
+                            }
 
-							stopMasterSearch = solutionListener.executeAfterSolution(this, heuristic);
+                        }
+
+                        boolean stopMasterSearch = false;
+
+                        if (childResult || childFoundSolution) {
+                            // Child search found solution, so there is a
+                            // solution
+                            // for this search too.
+
+                            stopMasterSearch = solutionListener.executeAfterSolution(this, heuristic);
 
                             if (!childResult)
                                 stopMasterSearch = false;
-						}
+                        }
 
-						store.removeLevel(depth);
-						store.setLevel(--depth);
-						fdv = null;						
-						
-						if (!respectSolutionListenerAdvice && optimize) {
+                        store.removeLevel(depth);
+                        store.setLevel(--depth);
+                        fdv = null;
 
-							return false;
-						}
+                        if (!respectSolutionListenerAdvice && optimize) {
 
-						return stopMasterSearch;
+                            return false;
+                        }
 
-					}
+                        return stopMasterSearch;
 
-					if (costVariable != null) {
-						// it does not mean there is an optimization, only that we want to remember the value
-						// of the costVariable
-						costValue = costVariable.dom().min();
-						cost = new XltC(costVariable, costValue);
-						
-					}
-					
-					if (!respectSolutionListenerAdvice && optimize) {
+                    }
 
-						solutionListener.executeAfterSolution(this, heuristic);
+                    if (costVariable != null) {
+                        // it does not mean there is an optimization, only that we want to remember the value
+                        // of the costVariable
+                        if (costVariable instanceof IntVar) {
+                            costValue = ((IntVar) costVariable).dom().min();
+                            cost = new XltC((IntVar) costVariable, costValue);
+                        } else if (costVariable instanceof FloatVar) {
+                            costValueFloat = ((FloatVar) costVariable).dom().max();
+                            cost = new PltC((FloatVar) costVariable, costValueFloat);
+                            // cost = new org.jacop.floats.constraints.PlteqC((FloatVar)costVariable, FloatDomain.previous(costValueFloat)); //costValueFloat - FloatDomain.epsilon(costValueFloat));
+                        }
 
-						store.removeLevel(depth);
-						store.setLevel(--depth);
-					
-						return false;
-					}
-					
-					boolean returnCode = solutionListener.executeAfterSolution(this, heuristic);
-					
-					store.removeLevel(depth);
-					store.setLevel(--depth);
-					
-					return returnCode;
+                    }
 
-				} else {
+                    if (!respectSolutionListenerAdvice && optimize) {
 
-					assert (store.currentConstraint == null);
-					store.impose(choice);
-					decisions++;
+                        solutionListener.executeAfterSolution(this, heuristic);
 
-					depthExcludePaths++;
-					if (depthExcludePaths > maxDepthExcludePaths)
-						maxDepthExcludePaths = depthExcludePaths;
+                        store.removeLevel(depth);
+                        store.setLevel(--depth);
 
-				}
+                        return false;
+                    }
 
-			}
+                    boolean returnCode = solutionListener.executeAfterSolution(this, heuristic);
 
-			// choice point imposed.
-			
-			consistent = label(heuristic.getIndex());
+                    store.removeLevel(depth);
+                    store.setLevel(--depth);
 
-			if (exitChildListener != null)
-				if ((choice == null && !exitChildListener.leftChild(fdv, val,
-						consistent))
-						|| (choice != null && !exitChildListener.leftChild(
-								choice, consistent))) {
-					store.removeLevel(depth);
-					store.setLevel(--depth);
-					depthExcludePaths--;
-					fdv = null;
-					return false;
-				}
+                    return returnCode;
 
-            if (consistent) {
-				fdv = null;
-				store.removeLevel(depth);
-				store.setLevel(--depth);
-				depthExcludePaths--;
-				return true;
-			} else {
+                } else {
 
-				// Assigning current variable to a value indicated by
-				// indomain result in a failure, this value is removed
-				// from the domain and label is called recursively with
-				// the same currentVariable.
+                    assert (store.currentConstraint == null);
+                    store.impose(choice);
+                    decisions++;
 
-				store.removeLevel(depth);
+                    depthExcludePaths++;
+                    if (depthExcludePaths > maxDepthExcludePaths)
+                        maxDepthExcludePaths = depthExcludePaths;
 
-				Object args[] = {depth, fdv, val};
-
-                if (SwitchesPruningLogging.traceSearchTree) {
-				    SwitchesPruningLogging.log(choice == null, DepthFirstSearch.class, "Store level: {}, Right branch: {} \\ {}", args);
-				    SwitchesPruningLogging.log(choice != null, DepthFirstSearch.class, "Store level: {}, Right branch: {}", depth, choice);
                 }
 
-				if (choice != null) {
+            }
 
-					assert (store.currentConstraint == null);
+            // choice point imposed.
 
-					store.setLevel(store.level);
+            consistent = label(heuristic.getIndex());
 
-					store.impose(new Not(choice));
-					
-					consistent = label(firstVariable);
+            if (exitChildListener != null)
+                if ((choice == null && !exitChildListener.leftChild(fdv, val, consistent)) || (choice != null && !exitChildListener
+                    .leftChild(choice, consistent))) {
+                    store.removeLevel(depth);
+                    store.setLevel(--depth);
+                    depthExcludePaths--;
+                    fdv = null;
+                    return false;
+                }
 
-					if (exitChildListener != null)
-						exitChildListener.rightChild(choice, consistent);
+            if (consistent) {
+                fdv = null;
+                store.removeLevel(depth);
+                store.setLevel(--depth);
+                depthExcludePaths--;
+                return true;
+            } else {
 
-					if (!consistent)
-						numberBacktracks++;
+                // Assigning current variable to a value indicated by
+                // indomain result in a failure, this value is removed
+                // from the domain and label is called recursively with
+                // the same currentVariable.
 
-					store.removeLevel(depth);
+                store.removeLevel(depth);
 
-					
-				}
-//				else if (!fdv.dom().singleton(val)) {
-				else if (!fdv.dom().singleton()) {
+                Object args[] = {depth, fdv, val};
 
-					assert (store.currentConstraint == null);
-						
-						store.setLevel(store.level);
+                if (SwitchesPruningLogging.traceSearchTree) {
+                    SwitchesPruningLogging.log(choice == null, DepthFirstSearch.class, "Store level: {}, Right branch: {} \\ {}", args);
+                    SwitchesPruningLogging.log(choice != null, DepthFirstSearch.class, "Store level: {}, Right branch: {}", depth, choice);
+                }
 
-						if (fdv instanceof IntVar)
-							((IntDomain)fdv.dom()).inComplement(store.level, (IntVar)fdv, val);
+                if (choice != null) {
 
-						if (fdv instanceof SetVar)
-							if (einAinleftTree)
-								((SetDomain)fdv.dom()).inLUBComplement(store.level, (SetVar)fdv, val);
-							else	
-								((SetDomain)fdv.dom()).inGLB(store.level, (SetVar)fdv, val);
+                    assert (store.currentConstraint == null);
 
-						consistent = label(firstVariable);
+                    store.setLevel(store.level);
 
-						if (exitChildListener != null)
-							exitChildListener.rightChild(fdv, val, consistent);
+                    store.impose(new Not(choice));
 
-						if (!consistent)
-							numberBacktracks++;
+                    consistent = label(firstVariable);
 
-						store.removeLevel(depth);
+                    if (exitChildListener != null)
+                        exitChildListener.rightChild(choice, consistent);
 
-					} else {
-						fdv = null;
-						consistent = false;
-					}
+                    if (!consistent)
+                        numberBacktracks++;
 
-				store.setLevel(--depth);
+                    store.removeLevel(depth);
 
-				depthExcludePaths--;
 
-				if (consistent) {
-					return true;
-				} else {
-					return false;
-				}
-			}
-		}
-	}
+                }
+                //				else if (!fdv.dom().singleton(val)) {
+                else if (!fdv.dom().singleton()) {
 
-	public void setStore(Store store) {
-		this.store = store;
-	}
+                    assert (store.currentConstraint == null);
 
-	public void setCostVar(IntVar cost) {
+                    store.setLevel(store.level);
 
-		costVariable = cost;
+                    if (fdv instanceof IntVar)
+                        ((IntDomain) fdv.dom()).inComplement(store.level, (IntVar) fdv, val);
 
-	}
+                    if (fdv instanceof SetVar)
+                        if (einAinleftTree)
+                            ((SetDomain) fdv.dom()).inLUBComplement(store.level, (SetVar) fdv, val);
+                        else
+                            ((SetDomain) fdv.dom()).inGLB(store.level, (SetVar) fdv, val);
 
-	/**
-	 * It is a labeling function called if the search is a sub-search being
-	 * called from the parent search. It never assigns a solution as it will be
-	 * immediately retracted by search calling this one.
-	 */
+                    consistent = label(firstVariable);
 
-	public boolean labeling() {
+                    if (exitChildListener != null)
+                        exitChildListener.rightChild(fdv, val, consistent);
 
-		boolean raisedLevel = false;
+                    if (!consistent)
+                        numberBacktracks++;
 
-		if (store.raiseLevelBeforeConsistency) {
-			store.raiseLevelBeforeConsistency = false;
-			store.setLevel(store.level + 1);
-			raisedLevel = true;
-		}
+                    store.removeLevel(depth);
 
-		depth = store.level;
-		cost = null;
-// 		timeOutOccured = false;
-// 		timeOut = System.currentTimeMillis() + tOut * 1000;
+                } else {
+                    fdv = null;
+                    consistent = false;
+                }
 
-		if (costVariable == null)
-			optimize = false;
+                store.setLevel(--depth);
 
-// 		decisions = 0;
-// 		numberBacktracks = 0;
-// 		nodes = 0;
-// 		wrongDecisions = 0;
-// 		depthExcludePaths = 0;
-// 		maxDepthExcludePaths = 0;
+                depthExcludePaths--;
 
-		if (initializeListener != null)
-			initializeListener.executedAtInitialize(store);
-		
-		// Iterative Solution listener sets it to zero so it can find the next batch, so it has to be executed
-		// after initialize listener.
-		int solutionNoBeforeSearch = solutionListener.solutionsNo();
-		
-		// If constraints employ only one time execution of the part of 
-		// the consistency technique then the results of that part must be
-		// stored in one level above the level search starts from as this
-		// can be removed. 
-		boolean result = store.consistency();
-		store.setLevel(store.level + 1);
-		depth = store.level;
-		
-		if (result)
-			result = label(0);
+                if (consistent) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+    }
 
-		store.removeLevel(store.level);
-		store.setLevel(store.level - 1);
-		depth--;			
-				
-		if (exitListener != null)
-			exitListener.executedAtExit(store, solutionListener.solutionsNo());
+    public void setStore(Store store) {
+        this.store = store;
+    }
 
-		if (timeOutOccured) {
+    public void setCostVar(Var cost) {
 
-			if (printInfo)
-				System.out.println("Time-out " + tOut + "s");
+        costVariable = cost;
+        optimize = true;
+    }
 
-		}
+    /**
+     * It is a labeling function called if the search is a sub-search being
+     * called from the parent search. It never assigns a solution as it will be
+     * immediately retracted by search calling this one.
+     */
 
-		if (solutionListener.solutionsNo() > solutionNoBeforeSearch) {
+    public boolean labeling() {
 
-			if (printInfo) {
-				if (costVariable != null)
-					System.out.println("Solution cost is " + costValue);
-				System.out.println(this);
-			}
+        boolean raisedLevel = false;
 
-			if (raisedLevel) {
-				store.removeLevel(store.level);
-				store.setLevel(store.level - 1);
-			}
+        if (store.raiseLevelBeforeConsistency) {
+            store.raiseLevelBeforeConsistency = false;
+            store.setLevel(store.level + 1);
+            raisedLevel = true;
+        }
+
+        depth = store.level;
+        cost = null;
+        // 		timeOutOccured = false;
+        // 		timeOut = System.currentTimeMillis() + tOut * 1000;
+
+        if (costVariable == null)
+            optimize = false;
+
+        // 		decisions = 0;
+        // 		numberBacktracks = 0;
+        // 		nodes = 0;
+        // 		wrongDecisions = 0;
+        // 		depthExcludePaths = 0;
+        // 		maxDepthExcludePaths = 0;
+
+        if (initializeListener != null)
+            initializeListener.executedAtInitialize(store);
+
+        // Iterative Solution listener sets it to zero so it can find the next batch, so it has to be executed
+        // after initialize listener.
+        int solutionNoBeforeSearch = solutionListener.solutionsNo();
+
+        // If constraints employ only one time execution of the part of
+        // the consistency technique then the results of that part must be
+        // stored in one level above the level search starts from as this
+        // can be removed.
+        boolean result = store.consistency();
+        store.setLevel(store.level + 1);
+        depth = store.level;
+
+        if (result)
+            result = label(0);
+
+        store.removeLevel(store.level);
+        store.setLevel(store.level - 1);
+        depth--;
+
+        if (exitListener != null)
+            exitListener.executedAtExit(store, solutionListener.solutionsNo());
+
+        if (timeOutOccured) {
+
+            if (printInfo)
+                System.out.println("Time-out " + tOut + "s");
+
+        }
+
+        if (solutionListener.solutionsNo() > solutionNoBeforeSearch) {
+
+            if (printInfo) {
+                if (costVariable != null)
+                    if (costVariable instanceof IntVar)
+                        System.out.println("Solution cost is " + costValue);
+                    else if (costVariable instanceof IntVar)
+                        System.out.println("Solution cost is " + costVariable.dom());
+
+                System.out.println(this);
+            }
+
+            if (raisedLevel) {
+                store.removeLevel(store.level);
+                store.setLevel(store.level - 1);
+            }
 
             if (masterSearch == null)
-			    return true;
+                return true;
             else
                 return result;
 
-		} else {
-			
-			if (printInfo) {
-				
-				System.out.println("No solution found.");
-				
-				StringBuffer buf = new StringBuffer();
-				
-				buf.append("Depth First Search " + id + "\n");
-				buf.append("\n");
-				buf.append("Nodes : ").append(nodes).append("\n");
-				buf.append("Decisions : ").append(decisions).append("\n");
-				buf.append("Wrong Decisions : ").append(wrongDecisions).append("\n");
-				buf.append("Backtracks : ").append(numberBacktracks).append("\n");
-				buf.append("Max Depth : ").append(maxDepthExcludePaths).append("\n");
+        } else {
 
-				System.out.println( buf.toString() );
-				
-			}			
+            if (printInfo) {
 
-			if (raisedLevel) {
-				store.removeLevel(store.level);
-				store.setLevel(store.level - 1);
-			}
+                System.out.println("No solution found.");
 
-			return false;
-		}
+                StringBuffer buf = new StringBuffer();
 
-	}
+                buf.append("Depth First Search " + id + "\n");
+                buf.append("\n");
+                buf.append("Nodes : ").append(nodes).append("\n");
+                buf.append("Decisions : ").append(decisions).append("\n");
+                buf.append("Wrong Decisions : ").append(wrongDecisions).append("\n");
+                buf.append("Backtracks : ").append(numberBacktracks).append("\n");
+                buf.append("Max Depth : ").append(maxDepthExcludePaths).append("\n");
 
-	public boolean labeling(Store store, SelectChoicePoint<T> select) {
+                System.out.println(buf.toString());
 
-		this.store = store;
+            }
 
-		if (store.raiseLevelBeforeConsistency) {
-			store.raiseLevelBeforeConsistency = false;
-			store.setLevel(store.level + 1);
-		}
+            if (raisedLevel) {
+                store.removeLevel(store.level);
+                store.setLevel(store.level - 1);
+            }
 
-		heuristic = select;
-		depth = store.level;
-// 		timeOutOccured = false;
-// 		timeOut = System.currentTimeMillis() + tOut * 1000;
+            return false;
+        }
 
-		if (costVariable == null)
-			optimize = false;
-		
-// 		decisions = 0;
-// 		numberBacktracks = 0;
-// 		nodes = 0;
-// 		wrongDecisions = 0;
-// 		depthExcludePaths = 0;
-// 		maxDepthExcludePaths = 0;
-
-		if (initializeListener != null)
-			initializeListener.executedAtInitialize(store);
-		
-		// Iterative Solution listener sets it to zero so it can find the next batch, so it has to be executed
-		// after initialize listener.
-		int solutionNoBeforeSearch = solutionListener.solutionsNo();
-		
-		boolean result = store.consistency();
-		store.setLevel(store.level + 1);
-		depth = store.level;
-
-		if (result) 
-			result = label(0);
-
-		store.removeLevel(store.level);
-		store.setLevel(store.level - 1);
-		depth--;			
-
-		if (exitListener != null)
-			exitListener.executedAtExit(store, solutionListener.solutionsNo() - solutionNoBeforeSearch);
-
-		if (timeOutOccured) {
-
-			if (printInfo)
-				System.out.println("Time-out " + tOut + "s");
-
-		}
-
-		if (solutionListener.solutionsNo() > solutionNoBeforeSearch) {
-			
-			if (assignSolution)
-				assignSolution();
-
-			if (printInfo)
-				System.out.println(this);
-			
-			return true;
-		} else {
-
-			if (printInfo) {
-				
-				System.out.println("No solution found.");
-				
-				StringBuffer buf = new StringBuffer();
-				
-				buf.append("Depth First Search " + id + "\n");
-				buf.append("\n");
-				buf.append("Nodes : ").append(nodes).append("\n");
-				buf.append("Decisions : ").append(decisions).append("\n");
-				buf.append("Wrong Decisions : ").append(wrongDecisions).append("\n");
-				buf.append("Backtracks : ").append(numberBacktracks).append("\n");
-				buf.append("Max Depth : ").append(maxDepthExcludePaths).append("\n");
-
-				System.out.println( buf.toString() );
-				
-			}			
-			return false;
-		}
-
-	}
-
-	public boolean labeling(Store store, SelectChoicePoint<T> select, IntVar costVar) {
-
-		this.store = store;
-
-		if (store.raiseLevelBeforeConsistency) {
-			store.raiseLevelBeforeConsistency = false;
-			store.setLevel(store.level + 1);
-		}
-
-		heuristic = select;
-		depth = store.level;
-		costVariable = costVar;
-		optimize = true;
-		cost = null;
-// 		timeOutOccured = false;
-// 		timeOut = System.currentTimeMillis() + tOut * 1000;
-
-// 		decisions = 0;
-// 		numberBacktracks = 0;
-// 		nodes = 0;
-// 		wrongDecisions = 0;
-// 		depthExcludePaths = 0;
-// 		maxDepthExcludePaths = 0;
-
-		if (initializeListener != null)
-			initializeListener.executedAtInitialize(store);
-		
-		// Iterative Solution listener sets it to zero so it can find the next batch, so it has to be executed
-		// after initialize listener.
-		int solutionNoBeforeSearch = solutionListener.solutionsNo();
-		
-		boolean result = store.consistency();
-		store.setLevel(store.level + 1);
-		depth = store.level;
-		
-		if (result)
-			result = label(0);
-
-		store.removeLevel(store.level);
-		store.setLevel(store.level - 1);
-		depth--;		
-		
-		if (exitListener != null)
-			exitListener.executedAtExit(store, solutionListener.solutionsNo());
-
-		if (timeOutOccured) {
-
-			if (printInfo)
-				System.out.println("Time-out " + tOut + "s");
-
-		}
-
-		if (solutionListener.solutionsNo() > solutionNoBeforeSearch) {
-			
-			if (assignSolution)
-				assignSolution();
-
-			if (printInfo)
-				System.out.println("Solution cost is " + costValue);
-
-			if (printInfo)
-				System.out.println(this);
-
-			return true;
-
-		} else {
-			
-			if (printInfo) {
-				
-				System.out.println("No solution found.");
-				
-				StringBuffer buf = new StringBuffer();
-				
-				buf.append("Depth First Search " + id + "\n");
-				buf.append("\n");
-				buf.append("Nodes : ").append(nodes).append("\n");
-				buf.append("Decisions : ").append(decisions).append("\n");
-				buf.append("Wrong Decisions : ").append(wrongDecisions).append("\n");
-				buf.append("Backtracks : ").append(numberBacktracks).append("\n");
-				buf.append("Max Depth : ").append(maxDepthExcludePaths).append("\n");
-
-				System.out.println( buf.toString() );
-				
-			}
-			return false;
-		}
-
-	}
-
-	/**
-	 * It decides if a solution is assigned to store after search exits.
-	 * 
-	 * @param value defines if solution is assigned.
-	 */
-
-	public void setAssignSolution(boolean value) {
-		assignSolution = value;
-	}
-
-	/**
-	 * It turns on the backtrack out.
-	 * 
-	 * @param out
-	 *            defines how many backtracks are performed before the search
-	 *            exits.
-	 */
-	public void setBacktracksOut(long out) {
-		backtracksOut = out;
-		check = true;
-		backtracksOutCheck = true;
-	}
-
-	/**
-	 * It turns on the decisions out.
-	 * 
-	 * @param out
-	 *            defines how many decisions are made before the search exits.
-	 */
-	public void setDecisionsOut(long out) {
-		decisionsOut = out;
-		check = true;
-		decisionsOutCheck = true;
-	}
-
-	/**
-	 * It turns on the nodes out.
-	 * 
-	 * @param out
-	 *            defines how many nodes are visited before the search exits.
-	 */
-	public void setNodesOut(long out) {
-		nodesOut = out;
-		check = true;
-		nodesOutCheck = true;
-	}
-
-	/**
-	 * It decides if information about search is printed.
-	 * 
-	 * @param value
-	 *            defines if info is printed to standard output.
-	 */
-
-	public void setPrintInfo(boolean value) {
-		printInfo = value;
-	}
-
-	/**
-	 * It turns on the timeout.
-	 * 
-	 * @param out
-	 *            defines how many seconds before the search exits.
-	 */
-	public void setTimeOut(long out) {
-		tOut = out;
-		check = true;
-		timeOutCheck = true;
-		timeOut = System.currentTimeMillis() + tOut * 1000;
-	}
-
-	/**
-	 * It turns on the wrong decisions out.
-	 * 
-	 * @param out
-	 *            defines how many wrong decisions are made before the search
-	 *            exits.
-	 */
-	public void setWrongDecisionsOut(long out) {
-		wrongDecisionsOut = out;
-		check = true;
-		wrongDecisionsOutCheck = true;
-	}
-
-	public void setMasterSearch(Search<? extends Var> master) {
-
-		masterSearch = master;
-
-	}
-
-	@Override
-	public String toString() {
-
-		StringBuffer buf = new StringBuffer();
-
-		buf.append("Depth First Search " + id + "\n");
-
-		buf.append(heuristic);
-
-		buf.append("\n" + solutionListener.toString());
-
-		if (costVariable != null)
-			buf.append("Cost " + costValue + "\n");
-
-		buf.append("Nodes : ").append(nodes).append("\n");
-		buf.append("Decisions : ").append(decisions).append("\n");
-		buf.append("Wrong Decisions : ").append(wrongDecisions).append("\n");
-		buf.append("Backtracks : ").append(numberBacktracks).append("\n");
-		buf.append("Max Depth : ").append(maxDepthExcludePaths).append("\n");
-
-		return buf.toString();
-	}
-
-	public boolean assignSolution() {
-
-		if (solutionListener.solutionsNo() != 0)
-			return assignSolution( solutionListener.solutionsNo() - 1);
-		else
-			return assignSolution( 0 );
-		
-	}
-
-	public boolean assignSolution(int no) {
-
-		boolean result;
-		
-		if (solutionListener.isRecordingSolutions())
-			result = solutionListener.assignSolution(store, no);
-		else
-			result = solutionListener.assignSolution(store, 0);
-
-		if (!result)
-			return false;
-
-		if (childSearches != null) {
-			int match = -1;
-			
-			currentChildSearch = 0;
-			for (; currentChildSearch < childSearches.length
-					&& match == -1; currentChildSearch++)
-				match = childSearches[currentChildSearch].getSolutionListener().findSolutionMatchingParent(no);
-			
-			if (match == -1)
-				return false;
-			return childSearches[currentChildSearch-1].assignSolution(match);
-		}
-
-		return true;
-
-	}
-
-	public ConsistencyListener getConsistencyListener() {
-		return consistencyListener;
-	}
-
-	public ExitChildListener<T> getExitChildListener() {
-		return exitChildListener;
-	}
-
-	public ExitListener getExitListener() {
-		return exitListener;
-	}
-
-	public TimeOutListener getTimeOutListener() {
-		return timeOutListener;
-	}
-
-	public void setSolutionListener(SolutionListener<T> listener) {
-		solutionListener = listener;
-	}
-
-	public void setConsistencyListener(ConsistencyListener listener) {
-		consistencyListener = listener;
-	}
-
-	public void setExitChildListener(ExitChildListener<T> listener) {
-		exitChildListener = listener;
-	}
-
-	public void setExitListener(ExitListener listener) {
-		exitListener = listener;
-	}
-
-	public void setTimeOutListener(TimeOutListener listener) {
-		timeOutListener = listener;
-	}
-
-	public InitializeListener getInitializeListener() {
-		return initializeListener;
-	}
-
-	public void setInitializeListener(InitializeListener listener) {
-		initializeListener = listener;
-	}
-	
-    public void printAllSolutions() {
-    	solutionListener.printAllSolutions();
     }
 
-	public IntVar getCostVariable() {
-		return costVariable;
-	}
+    public boolean labeling(Store store, SelectChoicePoint<T> select) {
 
-	public int getCostValue() {
-		return costValue;
-	}
+        this.store = store;
 
-	public void setOptimize(boolean value) {
-		optimize = value;
-	}
-	
+        if (store.raiseLevelBeforeConsistency) {
+            store.raiseLevelBeforeConsistency = false;
+            store.setLevel(store.level + 1);
+        }
+
+        heuristic = select;
+        depth = store.level;
+        // 		timeOutOccured = false;
+        // 		timeOut = System.currentTimeMillis() + tOut * 1000;
+
+        if (costVariable == null)
+            optimize = false;
+
+        // 		decisions = 0;
+        // 		numberBacktracks = 0;
+        // 		nodes = 0;
+        // 		wrongDecisions = 0;
+        // 		depthExcludePaths = 0;
+        // 		maxDepthExcludePaths = 0;
+
+        if (initializeListener != null)
+            initializeListener.executedAtInitialize(store);
+
+        // Iterative Solution listener sets it to zero so it can find the next batch, so it has to be executed
+        // after initialize listener.
+        int solutionNoBeforeSearch = solutionListener.solutionsNo();
+
+        boolean result = store.consistency();
+        store.setLevel(store.level + 1);
+        depth = store.level;
+
+        if (result) {
+            result = label(0);
+            if (printInfo)
+                System.out.println("Labeling has finished with return value of " + result);
+        }
+        store.removeLevel(store.level);
+        store.setLevel(store.level - 1);
+        depth--;
+
+        if (exitListener != null)
+            exitListener.executedAtExit(store, solutionListener.solutionsNo() - solutionNoBeforeSearch);
+
+        if (timeOutOccured) {
+
+            if (printInfo)
+                System.out.println("Time-out " + tOut + "s");
+
+        }
+
+        if (solutionListener.solutionsNo() > solutionNoBeforeSearch) {
+
+            if (assignSolution)
+                assignSolution();
+
+            if (printInfo)
+                System.out.println(this);
+
+            return true;
+        } else {
+
+            if (printInfo) {
+
+                System.out.println("No solution found.");
+
+                StringBuffer buf = new StringBuffer();
+
+                buf.append("Depth First Search " + id + "\n");
+                buf.append("\n");
+                buf.append("Nodes : ").append(nodes).append("\n");
+                buf.append("Decisions : ").append(decisions).append("\n");
+                buf.append("Wrong Decisions : ").append(wrongDecisions).append("\n");
+                buf.append("Backtracks : ").append(numberBacktracks).append("\n");
+                buf.append("Max Depth : ").append(maxDepthExcludePaths).append("\n");
+
+                System.out.println(buf.toString());
+
+            }
+            return false;
+        }
+
+    }
+
+    // KKU, 2015-12-17: might be used to set cost variable and
+    // optimization = true for all sub-searches does not do it
+    // automatically since it might not be the intention (we might
+    // want to find only a single solution in the sub-search). This is
+    // why it is not added to labeling with costVar.
+    void setOptimizationForChildSearches(DepthFirstSearch s, Var costVar) {
+
+        // set cost and optimization for child searches
+        if (s != null) {
+            DepthFirstSearch[] childs = (DepthFirstSearch[]) s.childSearches;
+            if (childs != null) {
+                for (DepthFirstSearch child : childs) {
+                    child.setCostVar(costVar);
+                    child.setOptimize(true);
+                    setOptimizationForChildSearches(child, costVar);
+                }
+            }
+        }
+    }
+
+    public boolean labeling(Store store, SelectChoicePoint<T> select, Var costVar) {
+
+        this.store = store;
+
+        if (store.raiseLevelBeforeConsistency) {
+            store.raiseLevelBeforeConsistency = false;
+            store.setLevel(store.level + 1);
+        }
+
+        heuristic = select;
+        depth = store.level;
+        costVariable = costVar;
+        optimize = true;
+        cost = null;
+
+        // 		timeOutOccured = false;
+        // 		timeOut = System.currentTimeMillis() + tOut * 1000;
+
+        // 		decisions = 0;
+        // 		numberBacktracks = 0;
+        // 		nodes = 0;
+        // 		wrongDecisions = 0;
+        // 		depthExcludePaths = 0;
+        // 		maxDepthExcludePaths = 0;
+
+        if (initializeListener != null)
+            initializeListener.executedAtInitialize(store);
+
+        // Iterative Solution listener sets it to zero so it can find the next batch, so it has to be executed
+        // after initialize listener.
+        int solutionNoBeforeSearch = solutionListener.solutionsNo();
+
+        boolean result = store.consistency();
+        store.setLevel(store.level + 1);
+        depth = store.level;
+
+        if (result) {
+            result = label(0);
+            if (printInfo)
+                System.out.println("Labeling has finished with return value of " + result);
+        }
+        store.removeLevel(store.level);
+        store.setLevel(store.level - 1);
+        depth--;
+
+        if (exitListener != null)
+            exitListener.executedAtExit(store, solutionListener.solutionsNo());
+
+        if (timeOutOccured) {
+
+            if (printInfo)
+                System.out.println("Time-out " + tOut + "s");
+
+        }
+
+        if (solutionListener.solutionsNo() > solutionNoBeforeSearch) {
+
+            if (assignSolution)
+                assignSolution();
+
+            if (printInfo)
+                if (costVariable instanceof IntVar)
+                    System.out.println("Solution cost is " + costValue);
+                else if (costVariable instanceof FloatVar)
+                    System.out.println("Solution cost is " + costVariable.dom());
+
+            if (printInfo)
+                System.out.println(this);
+
+            return true;
+
+        } else {
+
+            if (printInfo) {
+
+                System.out.println("No solution found.");
+
+                StringBuffer buf = new StringBuffer();
+
+                buf.append("Depth First Search " + id + "\n");
+                buf.append("\n");
+                buf.append("Nodes : ").append(nodes).append("\n");
+                buf.append("Decisions : ").append(decisions).append("\n");
+                buf.append("Wrong Decisions : ").append(wrongDecisions).append("\n");
+                buf.append("Backtracks : ").append(numberBacktracks).append("\n");
+                buf.append("Max Depth : ").append(maxDepthExcludePaths).append("\n");
+
+                System.out.println(buf.toString());
+
+            }
+            return false;
+        }
+
+    }
+
+    /**
+     * It decides if a solution is assigned to store after search exits.
+     *
+     * @param value defines if solution is assigned.
+     */
+
+    public void setAssignSolution(boolean value) {
+        assignSolution = value;
+    }
+
+    /**
+     * It turns on the backtrack out.
+     *
+     * @param out
+     *            defines how many backtracks are performed before the search
+     *            exits.
+     */
+    public void setBacktracksOut(long out) {
+        backtracksOut = out;
+        check = true;
+        backtracksOutCheck = true;
+    }
+
+    /**
+     * It turns on the decisions out.
+     *
+     * @param out
+     *            defines how many decisions are made before the search exits.
+     */
+    public void setDecisionsOut(long out) {
+        decisionsOut = out;
+        check = true;
+        decisionsOutCheck = true;
+    }
+
+    /**
+     * It turns on the nodes out.
+     *
+     * @param out
+     *            defines how many nodes are visited before the search exits.
+     */
+    public void setNodesOut(long out) {
+        nodesOut = out;
+        check = true;
+        nodesOutCheck = true;
+    }
+
+    /**
+     * It decides if information about search is printed.
+     *
+     * @param value
+     *            defines if info is printed to standard output.
+     */
+
+    public void setPrintInfo(boolean value) {
+        printInfo = value;
+    }
+
+    /**
+     * It turns on the timeout.
+     *
+     * @param out
+     *            defines how many seconds before the search exits.
+     */
+    public void setTimeOut(long out) {
+        tOut = out;
+        check = true;
+        timeOutCheck = true;
+        timeOut = System.currentTimeMillis() + tOut * 1000;
+    }
+
+    /**
+     * It turns on the wrong decisions out.
+     *
+     * @param out
+     *            defines how many wrong decisions are made before the search
+     *            exits.
+     */
+    public void setWrongDecisionsOut(long out) {
+        wrongDecisionsOut = out;
+        check = true;
+        wrongDecisionsOutCheck = true;
+    }
+
+    public void setMasterSearch(Search<? extends Var> master) {
+
+        masterSearch = master;
+
+    }
+
+    @Override public String toString() {
+
+        StringBuffer buf = new StringBuffer();
+
+        buf.append("Depth First Search " + id + "\n");
+
+        buf.append(heuristic);
+
+        buf.append("\n" + solutionListener.toString());
+
+        if (costVariable != null)
+            if (costVariable instanceof IntVar)
+                buf.append("Cost " + costValue + "\n");
+            else if (costVariable instanceof FloatVar)
+                buf.append("Cost " + costVariable.dom() + "\n");
+
+        buf.append("Nodes : ").append(nodes).append("\n");
+        buf.append("Decisions : ").append(decisions).append("\n");
+        buf.append("Wrong Decisions : ").append(wrongDecisions).append("\n");
+        buf.append("Backtracks : ").append(numberBacktracks).append("\n");
+        buf.append("Max Depth : ").append(maxDepthExcludePaths).append("\n");
+
+        return buf.toString();
+    }
+
+    public boolean assignSolution() {
+
+        if (solutionListener.solutionsNo() != 0)
+            return assignSolution(solutionListener.solutionsNo() - 1);
+        else
+            return assignSolution(0);
+
+    }
+
+    public boolean assignSolution(int no) {
+
+        boolean result;
+
+        if (solutionListener.isRecordingSolutions())
+            result = solutionListener.assignSolution(store, no);
+        else
+            result = solutionListener.assignSolution(store, 0);
+
+        if (!result)
+            return false;
+
+        if (childSearches != null) {
+            int match = -1;
+
+            currentChildSearch = 0;
+            for (; currentChildSearch < childSearches.length && match == -1; currentChildSearch++)
+                match = childSearches[currentChildSearch].getSolutionListener().findSolutionMatchingParent(no);
+
+            if (match == -1)
+                return false;
+            return childSearches[currentChildSearch - 1].assignSolution(match);
+        }
+
+        return true;
+
+    }
+
+    public ConsistencyListener getConsistencyListener() {
+        return consistencyListener;
+    }
+
+    public ExitChildListener<T> getExitChildListener() {
+        return exitChildListener;
+    }
+
+    public ExitListener getExitListener() {
+        return exitListener;
+    }
+
+    public TimeOutListener getTimeOutListener() {
+        return timeOutListener;
+    }
+
+    public void setSolutionListener(SolutionListener<T> listener) {
+        solutionListener = listener;
+    }
+
+    public void setConsistencyListener(ConsistencyListener listener) {
+        consistencyListener = listener;
+    }
+
+    public void setExitChildListener(ExitChildListener<T> listener) {
+        exitChildListener = listener;
+    }
+
+    public void setExitListener(ExitListener listener) {
+        exitListener = listener;
+    }
+
+    public void setTimeOutListener(TimeOutListener listener) {
+        timeOutListener = listener;
+    }
+
+    public InitializeListener getInitializeListener() {
+        return initializeListener;
+    }
+
+    public void setInitializeListener(InitializeListener listener) {
+        initializeListener = listener;
+    }
+
+    public void printAllSolutions() {
+        solutionListener.printAllSolutions();
+    }
+
+    public Var getCostVariable() {
+        return costVariable;
+    }
+
+    public int getCostValue() {
+        return costValue;
+    }
+
+    public double getCostValueFloat() {
+        return costValueFloat;
+    }
+
+    public void setOptimize(boolean value) {
+        optimize = value;
+    }
+
 }

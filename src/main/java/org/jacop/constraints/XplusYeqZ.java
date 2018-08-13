@@ -1,253 +1,181 @@
-/**
- *  XplusYeqZ.java 
- *  This file is part of JaCoP.
- *
- *  JaCoP is a Java Constraint Programming solver. 
- *	
- *	Copyright (C) 2000-2008 Krzysztof Kuchcinski and Radoslaw Szymanek
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *  
- *  Notwithstanding any other provision of this License, the copyright
- *  owners of this work supplement the terms of this License with terms
- *  prohibiting misrepresentation of the origin of this work and requiring
- *  that modified versions of this work be marked in reasonable ways as
- *  different from the original version. This supplement of the license
- *  terms is in accordance with Section 7 of GNU Affero General Public
- *  License version 3.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
+/*
+ * XplusYeqZ.java
+ * This file is part of JaCoP.
+ * <p>
+ * JaCoP is a Java Constraint Programming solver.
+ * <p>
+ * Copyright (C) 2000-2008 Krzysztof Kuchcinski and Radoslaw Szymanek
+ * <p>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * <p>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ * <p>
+ * Notwithstanding any other provision of this License, the copyright
+ * owners of this work supplement the terms of this License with terms
+ * prohibiting misrepresentation of the origin of this work and requiring
+ * that modified versions of this work be marked in reasonable ways as
+ * different from the original version. This supplement of the license
+ * terms is in accordance with Section 7 of GNU Affero General Public
+ * License version 3.
+ * <p>
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package org.jacop.constraints;
 
-import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jacop.core.IntDomain;
 import org.jacop.core.IntVar;
 import org.jacop.core.Store;
-import org.jacop.core.Var;
 
 /**
- * Constraint X + Y #= Z
- * 
+ * Constraint X + Y = Z
+ *
  * Bound consistency is used.
- * 
+ *
  * @author Krzysztof Kuchcinski and Radoslaw Szymanek
- * @version 4.0
+ * @version 4.5
  */
 
 public class XplusYeqZ extends PrimitiveConstraint {
 
-	static int idNumber = 1;
+    final static AtomicInteger idNumber = new AtomicInteger(0);
 
-	/**
-	 * It specifies variable x in constraint x+y=z. 
-	 */
-	public IntVar x;
+    /**
+     * It specifies variable x in constraint x+y=z.
+     */
+    final public IntVar x;
 
-	/**
-	 * It specifies variable x in constraint x+y=z. 
-	 */
-	public IntVar y;
+    /**
+     * It specifies variable x in constraint x+y=z.
+     */
+    final public IntVar y;
 
-	/**
-	 * It specifies variable x in constraint x+y=z. 
-	 */
-	public IntVar z;
+    /**
+     * It specifies variable x in constraint x+y=z.
+     */
+    final public IntVar z;
 
-	
-	/**
-	 * It specifies the arguments required to be saved by an XML format as well as 
-	 * the constructor being called to recreate an object from an XML format.
-	 */
-	public static String[] xmlAttributes = {"x", "y", "z"};
+    /** It constructs constraint X+Y=Z.
+     * @param x variable x.
+     * @param y variable y.
+     * @param z variable z.
+     */
+    public XplusYeqZ(IntVar x, IntVar y, IntVar z) {
 
-	/** It constructs constraint X+Y=Z.
-	 * @param x variable x.
-	 * @param y variable y.
-	 * @param z variable z.
-	 */
-	public XplusYeqZ(IntVar x, IntVar y, IntVar z) {
-		
-		assert (x != null) : "Variable x is null";
-		assert (y != null) : "Variable y is null";
-		assert (z != null) : "Variable z is null";
+        checkInputForNullness(new String[]{"x", "y", "z"}, new Object[]{x, y, z});
 
-		numberId = idNumber++;
-		numberArgs = 3;
+        numberId = idNumber.incrementAndGet();
 
-		this.x = x;
-		this.y = y;
-		this.z = z;
-	}
+        this.x = x;
+        this.y = y;
+        this.z = z;
 
-	@Override
-	public ArrayList<Var> arguments() {
+        checkForOverflow();
 
-		ArrayList<Var> variables = new ArrayList<Var>(3);
+        setScope(x, y, z);
+    }
 
-		variables.add(x);
-		variables.add(y);
-		variables.add(z);
-		return variables;
-	
-	}
+    @Override public void consistency(final Store store) {
 
-	@Override
-	public void consistency(Store store) {
-		
-		do {
-			
-			store.propagationHasOccurred = false;
+        do {
 
-			if (x.singleton()) {
+            store.propagationHasOccurred = false;
 
-				y.domain.inShift(store.level, y, z.domain, -x.value());
-				z.domain.inShift(store.level, z, y.domain, x.value());
+            if (x.singleton()) {
 
-			} else if (y.singleton()) {
+                y.domain.inShift(store.level, y, z.domain, -x.value());
+                z.domain.inShift(store.level, z, y.domain, x.value());
 
-				x.domain.inShift(store.level, x, z.domain, -y.value());
-				z.domain.inShift(store.level, z, x.dom(), y.value());
+            } else if (y.singleton()) {
 
-			} else {
+                x.domain.inShift(store.level, x, z.domain, -y.value());
+                z.domain.inShift(store.level, z, x.dom(), y.value());
 
-				x.domain.in(store.level, x, z.min() - y.max(), z.max()
-						- y.min());
-				y.domain.in(store.level, y, z.min() - x.max(), z.max()
-						- x.min());
-				z.domain.in(store.level, z, x.min() + y.min(), x.max()
-						+ y.max());
-			}
+            } else {
 
-		} while (store.propagationHasOccurred);
-		
-	}
+                x.domain.in(store.level, x, z.min() - y.max(), z.max() - y.min());
+                y.domain.in(store.level, y, z.min() - x.max(), z.max() - x.min());
+                z.domain.in(store.level, z, x.min() + y.min(), x.max() + y.max());
+            }
 
-	@Override
-	public int getNestedPruningEvent(Var var, boolean mode) {
+        } while (store.propagationHasOccurred);
 
-		// If consistency function mode
-		if (mode) {
-			if (consistencyPruningEvents != null) {
-				Integer possibleEvent = consistencyPruningEvents.get(var);
-				if (possibleEvent != null)
-					return possibleEvent;
-			}
-			return IntDomain.GROUND;
-		}
-		// If notConsistency function mode
-		else {
-			if (notConsistencyPruningEvents != null) {
-				Integer possibleEvent = notConsistencyPruningEvents.get(var);
-				if (possibleEvent != null)
-					return possibleEvent;
-			}
-			return IntDomain.BOUND;
-		}
-	}
+    }
 
-	@Override
-	public int getConsistencyPruningEvent(Var var) {
+    void checkForOverflow() {
 
-		// If consistency function mode
-			if (consistencyPruningEvents != null) {
-				Integer possibleEvent = consistencyPruningEvents.get(var);
-				if (possibleEvent != null)
-					return possibleEvent;
-			}
-			return IntDomain.BOUND;
+        int sumMin = 0, sumMax = 0;
 
-	}
+        sumMin = Math.addExact(sumMin, x.min());
+        sumMax = Math.addExact(sumMax, x.max());
 
-	@Override
-	public int getNotConsistencyPruningEvent(Var var) {
+        sumMin = Math.addExact(sumMin, y.min());
+        sumMax = Math.addExact(sumMax, y.max());
 
-	// If notConsistency function mode
-			if (notConsistencyPruningEvents != null) {
-				Integer possibleEvent = notConsistencyPruningEvents.get(var);
-				if (possibleEvent != null)
-					return possibleEvent;
-			}
-			return IntDomain.GROUND;
-	}
+        Math.subtractExact(sumMin, z.max());
+        Math.subtractExact(sumMax, z.min());
+    }
 
-	@Override
-	public void impose(Store store) {
+    @Override protected int getDefaultNestedNotConsistencyPruningEvent() {
+        return IntDomain.BOUND;
+    }
 
-		x.putModelConstraint(this, getConsistencyPruningEvent(x));
-		y.putModelConstraint(this, getConsistencyPruningEvent(y));
-		z.putModelConstraint(this, getConsistencyPruningEvent(z));
-		store.addChanged(this);
-		store.countConstraint();
-	}
 
-	@Override
-	public void notConsistency(Store store) {
-	
-		do {
-			
-			store.propagationHasOccurred = false;
+    @Override protected int getDefaultNestedConsistencyPruningEvent() {
+        return IntDomain.GROUND;
+    }
 
-			if (z.singleton() && y.singleton())
-				x.domain.inComplement(store.level, x, z.min() - y.min());
+    @Override protected int getDefaultNotConsistencyPruningEvent() {
+        return IntDomain.GROUND;
+    }
 
-			if (z.singleton() && x.singleton())
-				y.domain.inComplement(store.level, y, z.min() - x.min());
+    @Override public int getDefaultConsistencyPruningEvent() {
+        return IntDomain.BOUND;
+    }
 
-			if (x.singleton() && y.singleton())
-				z.domain.inComplement(store.level, z, x.min() + y.min());
-			
-		} while (store.propagationHasOccurred);
-		
-	}
+    @Override public void notConsistency(final Store store) {
 
-	@Override
-	public boolean notSatisfied() {
-		IntDomain xDom = x.dom(), yDom = y.dom(), zDom = z.dom();
-		return (xDom.max() + yDom.max() < zDom.min() || 
-				xDom.min() + yDom.min() > zDom.max());
-	}
+        do {
 
-	@Override
-	public void removeConstraint() {
-		x.removeConstraint(this);
-		y.removeConstraint(this);
-		z.removeConstraint(this);
-	}
+            store.propagationHasOccurred = false;
 
-	@Override
-	public boolean satisfied() {
+            if (z.singleton() && y.singleton())
+                x.domain.inComplement(store.level, x, z.min() - y.min());
 
-		return (x.singleton() && y.singleton() && z.singleton() 
-				&& x.value() + y.value() == z.value());
-		
-	}
+            if (z.singleton() && x.singleton())
+                y.domain.inComplement(store.level, y, z.min() - x.min());
 
-	@Override
-	public String toString() {
+            if (x.singleton() && y.singleton())
+                z.domain.inComplement(store.level, z, x.min() + y.min());
 
-		return id() + " : XplusYeqZ(" + x + ", " + y + ", " + z + " )";
-	}
+        } while (store.propagationHasOccurred);
 
-	@Override
-	public void increaseWeight() {
-		if (increaseWeight) {
-			x.weight++;
-			y.weight++;
-			z.weight++;
-		}
-	}
-			
+    }
+
+    @Override public boolean notSatisfied() {
+        IntDomain xDom = x.dom(), yDom = y.dom(), zDom = z.dom();
+        return (xDom.max() + yDom.max() < zDom.min() || xDom.min() + yDom.min() > zDom.max());
+    }
+
+    @Override public boolean satisfied() {
+
+        // return (grounded() && x.value() + y.value() == z.value());
+	int xMin = x.min(), yMin = y.min(), zMin = z.min();
+	return x.singleton(xMin) && y.singleton(yMin) && z.singleton(zMin) && xMin + yMin == zMin;
+    }
+
+    @Override public String toString() {
+
+        return id() + " : XplusYeqZ(" + x + ", " + y + ", " + z + " )";
+    }
+
 }

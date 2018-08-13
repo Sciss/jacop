@@ -1,7 +1,247 @@
+Version 4.6
+=============
+
+1. Replacing buggy Lex constraint for sets with simple but correct
+   AltB and AleB. Both constraints implement lexical order between
+   sets using either "<" or "<=" relations. Lex is kept for
+   compatibility.
+   Constraints AltB and AleB are primitive and can be used as
+   parameters to other constraints. Implementation of flatzinc
+   set_lt_reif and set_le_reif.
+
+2. SumInt, SumBool, LinearInt, LinearIntDom and LinearFloat does not
+   need Store parameter any longer.
+
+3. Fix of null pointer exception in Binpacking constraint. It is
+   sometimes present if a bin variable is ground when constraint is
+   imposed.
+
+4. New constraint for symmetry breaking, ValuePrecede.
+
+5. Implementation of ElementFloatVariable and ElementSetVariable as
+   well as related flatzinc predicates array_var_float_element
+   array_var_set_element.
+
+6. Bug fix in sequential search when there is float_search after
+   set_search.
+
+Version 4.5
+=============
+
+1. Performance improvements and identification of the same items in
+   Binpacking constraint.
+
+2. Correcting definitions of bin_packing and bin_packing_capa in JaCoP
+    flatzinc library.
+
+3. New constructor for LinearInt and LInearIntDom that makes it easier
+   to define it. Makes it possible to specify result as IntVar.
+
+4. New constraint SumFloat and new constructor for LinearFloat. Makes
+   it possible to specify result as FloatVar.
+
+5. New JaCoP specific variable selection options in flatzinc
+   (smallest_max, smallest_most_constrained, smallest_first_fail). It
+   requires to include jacop.mzn in minizinc program.
+
+6. Adding soft_all_different_int and soft_global_cardinality_int to
+   flatzinc. It requires to include jacop.mzn in minizinc program.
+
+7. Printing BooleanVar when store is printed.
+
+8. Adding possibility to Scala wrapper to define element constraint
+   on a list of BoolVar as array access.
+
+9. Adding floating-point constraints log2 and log10 to flatzinc to
+   JaCoP compiler.
+
+10. Two new classes for debugging and statistics gathering.
+   VariableTrace prints out variables prunings during search.
+   FailConstraintsStatistics gather number of fails for each
+   constraints and class of constraints.
+
+11. New cumulative constraints. CumulativeBasic does time-tabling
+    propagation, Cumulative does time-tabling and edge finding
+    propagation, and CumulativeUnary is a specialized version of unary
+    resources and does in addition to two previous propagations
+    not-first-not-last, detectable and overload propagations. All
+    propagations, except time-tabling, are done on binary trees and
+    have the following complexities, where n is the number of tasks
+    and k is the number of distinct resource values for tasks. Edge
+    finding O(k*n*logn), not-first-not-last, detectable and overload
+    O(n*logn).
+
+12. New, more efficient implementation of Diffn constraint. Added
+    Nooveralp constraint implementing basic non-overlapping
+    conditions for rectangles and DiffnDecomposed implemented as three
+    constraints: Nooverlap and two CumulativeBasic constraints in
+    direction X and Y.
+
+13. New Table and SimpleTable (number of table entries =< 64)
+    constraints based on compact-table representation.
+
+14. Calls to new cumulative, diffn and table constraints in Scala wrapper.
+
+15. New method for constraint generation for flatzinc.
+
+16. Making JaCoP compatible with Scala 2.12.
+
+17. Improvement in pruning for MinSimple and MaxSimple.
+
+18. Bug fixes:
+   - Changing comparator method in LinearFloat that
+     IllegalArgumentException is not reported.
+   - Correcting bugs in AndBool, OrBool and AndBoolSimple.
+   - Correcting a bug when a constraint needs information of changed
+     variables and is a parameter to other constraint, for example
+     Reified, Xor.
+   - Bug fix when reified BoolClause is generated in falzinc. The case
+     when BoolClause fails and reified variable is false.
+   - Bug fix in SumInt that stopped the propagator from computing a
+     fix-point in some situations.
+   - Bug fix in method inComplement that did not generated event
+     "BOUND" when bounds in the domain was changed (generated "ANY"
+     instead).
+
+19. Different Maven profiles for testing (commit, push, release) that
+    will execute different lengths tests in Maven test phase using
+    Minizinc tests stored in src/test/fz/ directory.
+
+20. Various code cleaning based on complaints from findbugs, Intelij IDE,
+    and Sonar.
+
+21. Adding workaround for a bug in Geost caused by too eager ignoring
+    execution of propagation when constraint is not consistent.
+
+22. Extending testing suites by adding thousands of minizinc based tests,
+    as well as some unit tests for domain classes. Adding fznFileGenerator
+    skrypt to quickly categorize new minizinc problems into time categories
+    to be used by future tests.
+
+23. Cleaning up design around Constraints. Refactoring a lot of code from
+    particular constraints into common functionality in Constraint.
+	
+Version 4.4
+===========
+
+1. New selection for search variables in minizinc. Only output
+   variables are selected by default.
+
+2. Adding additional pass to the flatzinc compiler. bool2int does not
+   generate the equality constraints on both variables. Only the first
+   variable is used in the model and the second one as the alias for
+   the first one. Decreases the number of generated constraints.
+
+3. Sum and SumWeight are deprecated and SumInt, SumBool or LinearInt
+   should be used instead.
+
+4. New circuit and subcircuit constraint definitions in minizinc that
+   accept arbitrary indexes (not always starting from 1).
+
+5. New constraint SumBool.
+
+6. Correcting a bug in OrBool constraint.
+
+7. Xor of Linear constraint corrected. Linear is deprecated and
+   LinearInt should be used instead.
+
+8. Correcting a bug in GCC.
+
+9. Improvements and corrections in Linear, LinearInt, SumInt,
+   LinearIntDom and LinearFloat.
+
+10. Bug fixes and improvements.
+
+Version 4.3
+===========
+1. Implementation of constraints ArgMin and ArgMax as well connection to
+   flatzinc constraints arg_min_int and arg_max_int.
+
+2. Correcting implementation of Diff2 and Disjoint. Currently Diff2
+   implements non-strict version of diffn constraint (minizinc constraint
+   diffn_nonstrict) that makes it possible to pack zero-width rectangles
+   anywhere. Disjoint implements a strict version of diffn constraint
+   (minizinc diffn constraint). It requires that zero-width rectangles
+   does not overlap with any other rectangle.
+	
+3. Implementation of primitive constraint BoolClause implementing flatzinc
+   constraint bool_clause.
+	
+4. Sets of integer with bounds 1..0 are treated by flatzinc parser as
+   empty sets. This implements a way minizinc 2.0 represents empty sets.
+
+5. Adding int_pow build-in predicate to flatzinc interpreter.
+
+6. LexOrder global constraints accepts vectors of different sizes.
+
+7. Performance improvement for SumWeightDom.
+
+8. Performance improvement for ElementInteger and two new constraints
+   ElementIntegerFast and ElementVariableFast that implement a
+   straightforward pruning method.
+
+9. New primitive constraints LinearInt and SumInt that implement
+   pruning methods from paper "Bounds Consistency Techniques for Long
+   Linear Constraints" by Warwick Harvey and Joachim Schimpf.
+
+10. Fixing performance bug in IntervalBasedBacktrackableManager.
+    Unnecessary call to checkRemoveInvariant outside assert statement.
+
+11. Adding option --bound (-b) to flatzinc parser that enforces use of bounds
+    consistency for constraints (instead of domain, even for constraints
+    annotated with "::domain").
+
+12. Adding SAT solver to JaCoP and connecting it to flatzinc
+    interpreter. The use of SAT solver in flatzinc is controlled by
+    option -sat. If the option is specified the SAT solver is used for
+    all bool_* constraints, otherwise CP constraints are used.
+
+13. Improving performance of Max and Min constraints. Specially for
+    large lists of varibales.
+
+14. Bug fixes.
+	
+Version 4.2
+===========
+1. Support for minizinc 2.0
+2. Constraint Geost avaible is now from minizinc.
+3. Implementation of Solution-Guided Multi-Point Constructive Search.
+4. Improvements in minimization method for floating-point variables.
+
+Version 4.1.1
+===========
+
+1. New global constraint LexOrder that defines lexicographical order
+   between two vectors of IntVar. Vectors must be of the same size.
+2. Implementation of a loader for flazinc models and related examples. The
+   loader makes it possible to load the model and then define own search
+   methods as well as use all variables defined in the model and their values.
+3. Performance improvements in AndBool and OrBool. it is no longer needed
+   to scan the whole list for achieving consistency.
+4. Checking for overflow in Sum and improvement in detecting overflow for
+   addition.
+5. Since domain consistency is computationally expensive minizinc uses
+   domain consistency for linear constraints only when constrained are
+   annotated ":: domain" and the size of maximal domains is <= 4 and
+   there is no more than 2 variables.
+
+Version 4.1
+===========
+
+1. New floating point variables and constraints on these variables.
+
+2. Flatzinc interface for JaCoP's floating point constraints.
+
+3. Scala interface for floating point constraints.
+
+4. Fixing a bug in knapsack constraints when large numbers are used.
+
+5. Implementing intersection method between SmallDenseDomain and BoundDomain.
+
 Version 4.0
 ===========
 
-1. Maven support and new directory structure. The package has changed name from JaCoP to org.jacop and files are placed in the new directory structure. 
+1. Maven support and new directory structure. The package has changed name from JaCoP to org.jacop and files are placed in the new directory structure.
 
 2. Experimental feature - stochastic variables and constraints - is moved to feature branch as it still requires additional testing.
    It is excluded from this release, but we encourage contribution in this branch (examples/tests in particular) to help us make it

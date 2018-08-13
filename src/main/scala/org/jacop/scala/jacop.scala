@@ -1,10 +1,44 @@
+/*
+ * jacop.scala
+ * This file is part of JaCoP.
+ * <p>
+ * JaCoP is a Java Constraint Programming solver.
+ * <p>
+ * Copyright (C) 2000-2008 Krzysztof Kuchcinski and Radoslaw Szymanek
+ * <p>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * <p>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ * <p>
+ * Notwithstanding any other provision of this License, the copyright
+ * owners of this work supplement the terms of this License with terms
+ * prohibiting misrepresentation of the origin of this work and requiring
+ * that modified versions of this work be marked in reasonable ways as
+ * different from the original version. This supplement of the license
+ * terms is in accordance with Section 7 of GNU Affero General Public
+ * License version 3.
+ * <p>
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 /**
-* Package for defining variables, constraints, global constraints and search methods for [[org.jacop]] constraint solver in Scala.
-*/
+  * Package for defining variables, constraints, global constraints and search methods for [[org.jacop]] constraint solver in Scala.
+  * @author Krzysztof Kuchcinski and Radoslaw Szymanek
+  * @version 4.5
+  */
 package org.jacop.scala
 
+import org.jacop.core._
 import org.jacop.constraints._
 import org.jacop.set.constraints._
+import org.jacop.floats.constraints._
 
 import scala.language.implicitConversions
 import scala.collection.mutable
@@ -51,6 +85,16 @@ trait jacop {
   implicit def boolToBoolVar(b: Boolean): BoolVar = {
     val i = if (b) 1 else 0
     val v = new BoolVar(i, i)
+    v
+  }
+
+/**
+ * Converts double to FloatVar.
+ *
+ * @param d float to be converted.
+ */
+  implicit def doubleToFloatVar(d: Double): FloatVar = {
+    val v = new FloatVar(d, d)
     v
   }
 
@@ -266,7 +310,7 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
  * @return IntVar variable being the result of the addition constraint. 
  */
    def +(that: org.jacop.core.IntVar) = {
-     val result = new IntVar()
+     val result = new IntVar(this.min()  + that.min(), this.max() + that.max())
      val c = new XplusYeqZ(this, that, result)
      getModel.constr += c
      result
@@ -279,7 +323,7 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
  * @return IntVar variable being the result of the addition constraint. 
  */
   def +(that: Int) = {
-    val result = new IntVar()
+    val result = new IntVar(this.min() + that, this.max() + that)
     val c = new XplusCeqZ(this, that, result)
     getModel.constr += c
     result
@@ -292,7 +336,7 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
  * @return IntVar variable being the result of the subtraction constraint. 
  */
   def -(that: org.jacop.core.IntVar) = {
-    val result = new IntVar()
+    val result = new IntVar(this.min() - that.max(), this.max() - that.min())
     val c = new XplusYeqZ(result, that, this)
     getModel.constr += c
     result
@@ -305,7 +349,7 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
  * @return IntVar variable being the result of the subtraction constraint. 
  */
   def -(that: Int) = {
-    val result = new IntVar()
+    val result = new IntVar(this.min() - that, this.max() - that)
     val c = new XplusCeqZ(result, that, this)
     getModel.constr += c
     result
@@ -318,6 +362,7 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
  * @return IntVar variable being the result of the multiplication constraint.
  */
    def *(that: org.jacop.core.IntVar) = {
+    val bounds = IntDomain.mulBounds(this.min(), this.max(), that.min(), that.max())
      val result = new IntVar()
      val c = new XmulYeqZ(this, that, result)
      getModel.constr += c
@@ -329,9 +374,10 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
  *
  * @param that a second integer parameter for the multiplication constraint.
  * @return IntVar variable being the result of the multiplication constraint. 
-  */
+ */
   def *(that: Int) = {
-    val result = new IntVar()
+    val bounds = IntDomain.mulBounds(this.min(), this.max(), that, that)
+    val result = new IntVar(bounds.min(), bounds.max())
     val c = new XmulCeqZ(this, that, result)
     getModel.constr += c
     result
@@ -344,7 +390,8 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
  * @return IntVar variable being the result of the integer division constraint.
  */
   def div(that: org.jacop.core.IntVar) = {
-    val result = new IntVar()
+    val bounds = IntDomain.divBounds(this.min(), this.max(), that.min(), that.max())
+    val result = new IntVar(bounds.min(), bounds.max())
     val c = new XdivYeqZ(this, that, result)
     getModel.constr += c
     result
@@ -357,10 +404,26 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
  * @return IntVar variable being the result of the integer reminder from division constraint.
  */
   def mod(that: org.jacop.core.IntVar) = {
-     val result = new IntVar()
-     val c = new XmodYeqZ(this, that, result)
-     getModel.constr += c
-     result
+    var reminderMin : Int = 0;
+    var reminderMax : Int = 0;
+
+    if (this.min() >= 0) {
+      reminderMin = 0
+      reminderMax = Math.max(Math.abs(that.min()), Math.abs(that.max()))  - 1
+    }
+    else if (this.max() < 0) {
+      reminderMax = 0
+      reminderMin = - Math.max(Math.abs(that.min()), Math.abs(that.max())) + 1
+    } 
+    else {
+      reminderMin = Math.min(Math.min(that.min(),-that.min()), Math.min(that.max(),-that.max())) + 1
+      reminderMax = Math.max(Math.max(that.min(),-that.min()), Math.max(that.max(),-that.max())) - 1
+    }
+
+    val result = new IntVar(reminderMin, reminderMax)
+    val c = new XmodYeqZ(this, that, result)
+    getModel.constr += c
+    result
    }
 
 /**
@@ -382,7 +445,7 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
  * @return the defined constraint.
  */
   def unary_- = {
-    val result = new IntVar()
+    val result = new IntVar(-this.max(), -this.min())
     val c = new XplusYeqC(this, result, 0)
     getModel.constr += c
     result
@@ -409,6 +472,19 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
  */
   def #=(that: org.jacop.core.IntVar) = { 
     val c = new XeqY(this, that)
+    getModel.constr += c
+    c
+  }
+
+
+/**
+ * Defines equation constraint between an IntVar and FloatVar.
+ *
+ * @param that a second parameter for equation constraint.
+ * @return the defined constraint.
+ */
+  def #=(that: org.jacop.floats.core.FloatVar) = { 
+    val c = new org.jacop.floats.constraints.XeqP(this, that)
     getModel.constr += c
     c
   }
@@ -709,6 +785,312 @@ class IntVar(name: String, min: Int, max: Int) extends org.jacop.core.IntVar(get
   }
 }
 
+/**
+ * Defines a floating point variable and its primitive constraints.
+ *
+ * @constructor Creates a new floating point variable.
+ * @param name variable identifier.
+ * @param min minimal value of variable's domain.
+ * @param max maximal value of variable's domain.
+ */
+class FloatVar(name: String, min: Double, max: Double) extends org.jacop.floats.core.FloatVar(getModel, name, min, max) with jacop {
+
+/**
+ * Defines an anonymous finite domain integer variable.
+ *
+ * @constructor Creates a new finite domain integer variable.
+ * @param min minimal value of variable's domain.
+ * @param max maximal value of variable's domain.
+ */
+  def this(min: Double, max: Double) = {
+    this ("_$" + getModel.n, min, max)
+    getModel.n += 1
+  }
+
+/**
+ * Defines an anonymous floating point variable.
+ *
+ * @constructor Creates a new floating point variable with minimal and maximal
+ * @param name variable's identifier.
+ */
+  def this(name: String) = {
+    this (name, -1e150, 1e150)
+    getModel.n += 1
+  }
+
+/**
+ * Defines an anonymous floating point variable.
+ *
+ * @constructor Creates a new floating point variable with minimal and maximal
+ * values in the domain defined by org.jacop.
+ */
+  def this() = {
+    this (-1e150, 1e150)
+    getModel.n += 1
+  }
+
+
+/**
+ * Defines add constraint between two FloatVar.
+ *
+ * @param that a second parameter for the addition constraint.
+ * @return FloatVar variable being the result of the addition constraint. 
+ */
+   def +(that: org.jacop.floats.core.FloatVar) = {
+     val result = new FloatVar()
+     val c = new PplusQeqR(this, that, result)
+     getModel.constr += c
+     result
+   }
+
+/**
+ * Defines add constraint between FloatVar and an Double value.
+ *
+ * @param that a second double parameter for the addition constraint.
+ * @return FloatVar variable being the result of the addition constraint. 
+ */
+  def +(that: Double) = {
+    val result = new FloatVar()
+    val c = new PplusCeqR(this, that, result)
+    getModel.constr += c
+    result
+  }
+
+/**
+ * Defines subtract constraint between two FloatVar.
+ *
+ * @param that a second parameter for the subtraction constraint.
+ * @return FloatVar variable being the result of the subtraction constraint. 
+ */
+  def -(that: org.jacop.floats.core.FloatVar) = {
+    val result = new FloatVar()
+    val c = new PminusQeqR(this, that, result)
+    getModel.constr += c
+    result
+  }
+
+/**
+ * Defines subtract constraint between FloatVar and an double value.
+ *
+ * @param that a second double parameter for the subtraction constraint.
+ * @return FloatVar variable being the result of the subtraction constraint. 
+ */
+  def -(that: Double) = {
+    val result = new FloatVar()
+    val c = new PminusCeqR(this, that, result)
+    getModel.constr += c
+    result
+  }
+
+/**
+ * Defines multiplication constraint between two FloatVar.
+ *
+ * @param that a second parameter for the multiplication constraint.
+ * @return FloatVar variable being the result of the multiplication constraint.
+ */
+   def *(that: org.jacop.floats.core.FloatVar) = {
+     val result = new FloatVar()
+     val c = new PmulQeqR(this, that, result)
+     getModel.constr += c
+     result
+   }
+
+/**
+ * Defines multiplication constraint between FloatVar and an double value.
+ *
+ * @param that a second parameter for the multiplication constraint.
+ * @return FloatVar variable being the result of the multiplication constraint. 
+ */
+  def *(that: Double) = {
+    val result = new FloatVar()
+    val c = new PmulCeqR(this, that, result)
+    getModel.constr += c
+    result
+  }
+
+/**
+ * Defines division constraint between two FlaotVar.
+ *
+ * @param that a second parameter for the division constraint.
+ * @return FloatVar variable being the result of the division constraint.
+ */
+  def div(that: org.jacop.floats.core.FloatVar) = {
+    val result = new FloatVar()
+    val c = new PdivQeqR(this, that, result)
+    getModel.constr += c
+    result
+  }
+
+/**
+ * Defines unary "-" constraint for FlaotVar.
+ *
+ * @return the defined constraint.
+ */
+  def unary_- = {
+    val result = new FloatVar()
+    val c = new PplusQeqR(this, result, new FloatVar(0.0, 0.0))
+    getModel.constr += c
+    result
+  }
+
+
+/**
+ * Defines equation constraint between two FloatVar.
+ *
+ * @param that a second parameter for equation constraint.
+ * @return the defined constraint.
+ */
+  def #=(that: org.jacop.floats.core.FloatVar) = { 
+    val c = new PeqQ(this, that)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines equation constraint between an IntVar and FloatVar.
+ *
+ * @param that a second parameter for equation constraint.
+ * @return the defined constraint.
+ */
+  def #=(that: org.jacop.core.IntVar) = { 
+    val c = new org.jacop.floats.constraints.XeqP(that, this)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines equation constraint between FlaotVar and a double constant.
+ *
+ * @param that a second parameter for equation constraint.
+ * @return the defined constraint.
+ */
+  def #=(that: Double) = {
+    val c = new PeqC(this, that)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines inequality constraint between two FloatVar.
+ *
+ * @param that a second parameter for inequality constraint.
+ * @return the defined constraint.
+ */
+  def #\=(that: org.jacop.floats.core.FloatVar) = {
+    val c = new PneqQ(this, that)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines inequality constraint between FloatVar and double constant.
+ *
+ * @param that a second parameter for inequality constraint.
+ * @return the defined constraint.
+ */
+  def #\=(that: Double) = {
+    val c = new PneqC(this, that)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines "less than" constraint between two FloatVar.
+ *
+ * @param that a second parameter for "less than" constraint.
+ * @return the defined constraint.
+ */
+  def #<(that: org.jacop.floats.core.FloatVar) = {
+    val c = new PltQ(this, that)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines "less than" constraint between FloatVar and double constant.
+ *
+ * @param that a second parameter for "less than" constraint.
+ * @return the equation constraint.
+ */
+  def #<(that: Double) = {
+    val c = new PltC(this, that)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines "less than or equal" constraint between two FloatVar.
+ *
+ * @param that a second parameter for "less than or equal" constraint.
+ * @return the defined constraint.
+ */
+  def #<=(that: org.jacop.floats.core.FloatVar) = {
+    val c = new PlteqQ(this, that)
+    getModel.constr += c
+    c
+   }
+
+/**
+ * Defines "less than or equal" constraint between FloatVar and double constant.
+ *
+ * @param that a second parameter for "less than or equal" constraint.
+ * @return the equation constraint.
+ */
+  def #<=(that: Double) = {
+    val c = new PlteqC(this, that)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines "greater than" constraint between two FlaotVar.
+ *
+ * @param that a second parameter for "greater than" constraint.
+ * @return the defined constraint.
+ */
+  def #>(that: org.jacop.floats.core.FloatVar) = {
+    val c = new PgtQ(this, that)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines "greater than" constraint between FloatVar and double constant.
+ *
+ * @param that a second parameter for "greater than" constraint.
+ * @return the equation constraint.
+ */
+  def #>(that: Double) = {
+    val c = new PgtC(this, that)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines "greater than or equal" constraint between two FloatVar.
+ *
+ * @param that a second parameter for "greater than or equal" constraint.
+ * @return the defined constraint.
+ */
+  def #>=(that: org.jacop.floats.core.FloatVar) = {
+    val c = new PgteqQ(this, that)
+    getModel.constr += c
+    c
+  }
+
+/**
+ * Defines "greater than or equal" constraint between FloatVar and integer constant.
+ *
+ * @param that a second parameter for "greater than or equal" constraint.
+ * @return the equation constraint.
+ */
+  def #>=(that: Double) = {
+    val c = new PgteqC(this, that)
+    getModel.constr += c
+    c
+  }
+}
+
 
 /**
  * Defines a set variable and its primitive constraints.
@@ -875,7 +1257,7 @@ class SetVar(name : String, glb : Int, lub : Int) extends org.jacop.set.core.Set
  */
   @deprecated("use #>= instead", "1.0") 
   def >= (that: SetVar) = {
-    val c = new org.jacop.set.constraints.Lex(that, this)
+    val c = new org.jacop.set.constraints.AleB(that, this)
     getModel.constr += c
     c
   }
@@ -887,7 +1269,7 @@ class SetVar(name : String, glb : Int, lub : Int) extends org.jacop.set.core.Set
  * @return result this constraint.
  */
   def #>= (that: SetVar) = {
-    val c = new org.jacop.set.constraints.Lex(that, this)
+    val c = new org.jacop.set.constraints.AleB(that, this)
     getModel.constr += c
     c
   }
@@ -900,7 +1282,7 @@ class SetVar(name : String, glb : Int, lub : Int) extends org.jacop.set.core.Set
  */
   @deprecated("use #<= instead", "1.0") 
   def <= (that: SetVar) = {
-    val c = new org.jacop.set.constraints.Lex(this, that)
+    val c = new org.jacop.set.constraints.AleB(this, that)
     getModel.constr += c
     c
   }
@@ -912,7 +1294,7 @@ class SetVar(name : String, glb : Int, lub : Int) extends org.jacop.set.core.Set
  * @return result this constraint.
  */
   def #<= (that: SetVar) = {
-    val c = new org.jacop.set.constraints.Lex(this, that)
+    val c = new org.jacop.set.constraints.AleB(this, that)
     getModel.constr += c
     c
   }
@@ -1001,6 +1383,19 @@ class BoolVar(name: String, min1: Int, max1: Int) extends org.jacop.core.Boolean
   }
 
 /**
+ * Defines equation constraint between an IntVar and FloatVar.
+ *
+ * @param that a second parameter for equation constraint.
+ * @return the defined constraint.
+ */
+  def #=(that: org.jacop.floats.core.FloatVar) = { 
+    val c = new org.jacop.floats.constraints.XeqP(this, that)
+    getModel.constr += c
+    c
+  }
+
+
+/**
  * Defines equation constraint a BoolVar and a integer value.
  *
  * @param that a second parameter for equation constraint.
@@ -1022,7 +1417,7 @@ class BoolVar(name: String, min1: Int, max1: Int) extends org.jacop.core.Boolean
     val result = new BoolVar()
     val parameters = Array(this, that)
     val c = new org.jacop.constraints.AndBool(parameters, result)
-    getModel.constr += c
+    getModel.constr += c.decompose(store).get(0)
     result
   }
 
@@ -1036,7 +1431,7 @@ class BoolVar(name: String, min1: Int, max1: Int) extends org.jacop.core.Boolean
     val result = new BoolVar()
     val parameters = Array(this, that)
     val c = new org.jacop.constraints.OrBool(parameters, result)
-    getModel.constr += c
+    getModel.constr += c.decompose(store).get(0)
     result
   }
 
