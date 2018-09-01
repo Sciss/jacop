@@ -6,7 +6,7 @@ JaCoP
 This is a fork of the Java Constraint Programming (JaCoP) solver from [github.com/radsz/jacop](https://github.com/radsz/jacop).
 This fork is used to publish a stable version to Maven Central to be able to easily depend on this library.
 In order to prevent confusion with mainline JaCoP, I am using my own group ID
-`de.sciss` and a (arbitrary) artifact version. The current version `3.4.0` corresponds with "upstream" version 4.0.0.
+`de.sciss` and a (arbitrary) artifact version. The current version `3.5.0` corresponds with "upstream" version 4.6.0-SNAPSHOT.
 
 This version is slightly stripped down by excluding the FlatZinc
 front-end, since I am building with `sbt` instead of `maven` and could not figure out how to include the JavaCC / JJTree

@@ -1,7 +1,7 @@
 // build file for sbt, replaces original pom.xml maven build file.
 
 name              := "jacop"
-version           := "3.5.0-SNAPSHOT"  // our own version; corresponds with original jacop version 4.6.0-SNAPSHOT
+version           := "3.5.0"  // our own version; corresponds with original jacop version 4.6.0-SNAPSHOT
 organization      := "de.sciss"        // we publish under this group ID
 description       := "Java Constraint Programming solver (fork)"
 homepage          := Some(url("https://github.com/Sciss/" + name.value))
